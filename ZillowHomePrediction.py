@@ -13,7 +13,7 @@ from sklearn.model_selection import train_test_split
 
 import ZillowDataDecomposition
 import ZillowDataRepository
-from ZillowHomePredictionModels import ZillowHomePredictionModels
+from ZillowHomePredictionModels import ZillowHomePredictionModels, xgb_params1, xgb_params2
 
 # xgboost fix
 mingw_path = 'C:\\Program Files\\mingw-w64\\x86_64-7.1.0-posix-seh-rt_v5-rev2\\mingw64\\bin'
@@ -115,12 +115,12 @@ class ZillowHomePrediction():
         print(mean_absolute_error(y_test, pred))
 
 
-    def test_with_xgboost(self):
+    def test_with_xgboost(self, xgb_params=xgb_params, boost_rounds=150):
         data = self.data_repo.get_merged_data()
         X_train, X_test, y_train, y_test = self.__get_train_test_data__(data)
         dtest = xgb.DMatrix(X_test)
 
-        model = self.zillow_models.generate_xgb_model(X_train, y_train, xgb_params, 500)
+        model = self.zillow_models.generate_xgb_model(X_train, y_train, xgb_params, boost_rounds)
         pred = model.predict(dtest)
         print("Model score:")
         print(r2_score(y_test, pred))
@@ -129,6 +129,8 @@ class ZillowHomePrediction():
 
 
 home_pred = ZillowHomePrediction()
-home_pred.test_combined_models()
+#home_pred.test_combined_models()
+#home_pred.test_with_xgboost(xgb_params1, 250)
+#home_pred.test_with_xgboost(xgb_params2, 150)
 #home_pred.generate_combined_model_with_decomp_submission()
-#home_pred.generate_combined_model_submission()
+home_pred.generate_combined_model_submission()

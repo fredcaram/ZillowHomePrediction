@@ -7,6 +7,9 @@ from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.cross_decomposition import PLSRegression
 
+random_state = 42
+np.random_state = 42
+
 # xgboost fix
 mingw_path = 'C:\\Program Files\\mingw-w64\\x86_64-7.1.0-posix-seh-rt_v5-rev2\\mingw64\\bin'
 os.environ['PATH'] = mingw_path + ';' + os.environ['PATH']
@@ -16,10 +19,10 @@ import xgboost as xgb
 
 # Global Parameters
 XGB_WEIGHT = 0.6415
-BASELINE_WEIGHT = 0.0056
-OLS_WEIGHT = 0.0828
+BASELINE_WEIGHT = 0.0050
+OLS_WEIGHT = 0.0856
 
-XGB1_WEIGHT = 0.80#0.90738#0.8083  # Weight of first in combination of two XGB models
+XGB1_WEIGHT = 0.8#XGB Correlation#0.8083  # Weight of first in combination of two XGB models
 
 BASELINE_PRED = 0.0115   # Baseline based on mean of training data, per Oleg
 
@@ -30,7 +33,8 @@ xgb_params1_sklearn = {
     'booster': 'gblinear',
     'reg_lambda': 0.8,
     'reg_alpha': 0.4,
-    'silent': True
+    'silent': True,
+    'seed': random_state
 }
 
 xgb_params1 = {
@@ -41,7 +45,28 @@ xgb_params1 = {
             'eval_metric': 'mae',
             'lambda': 0.8,
             'alpha': 0.4,
-            'silent': 1
+            'silent': 1,
+            'seed': random_state
+        }
+xgb_params3 = {
+            'eta': 0.0271,
+            'max_depth': 5,
+            'subsample': 0.82,
+            'objective': 'reg:linear',
+            'eval_metric': 'mae',
+            'silent': 1,
+            'seed': random_state
+        }
+xgb_params4 = {
+            'eta': 0.0221,
+            'max_depth': 5,
+            'subsample': 0.82,
+            'objective': 'reg:linear',
+            'eval_metric': 'mae',
+            'lambda': 0.8,
+            'alpha': 0.4,
+            'silent': 1,
+            'seed': random_state
         }
 
 xgb_params2 = {
@@ -50,7 +75,8 @@ xgb_params2 = {
             'subsample': 0.79,
             'objective': 'reg:linear',
             'eval_metric': 'mae',
-            'silent': 1
+            'silent': 1,
+            'seed': random_state
         }
 
 class ZillowHomePredictionModels:
@@ -61,7 +87,7 @@ class ZillowHomePredictionModels:
             'learning_rate': 0.0021,  # shrinkage_rate
             'boosting_type': 'gbdt',
             'objective': 'regression',
-            'metric': 'mae',
+            'metric': 'l1',
             'sub_feature': 0.345,
             'bagging_fraction': 0.85,  # sub_row
             'bagging_freq': 40,
@@ -111,9 +137,8 @@ class ZillowHomePredictionModels:
         # Some useful parameters which will come in handy later on
         ntrain = x_train.shape[0]
         ntest = x_test.shape[0]
-        SEED = 0  # for reproducibility
         NFOLDS = 5  # set folds for out-of-fold prediction
-        kf = KFold(n_splits=NFOLDS, random_state=SEED)
+        kf = KFold(n_splits=NFOLDS, random_state=random_state)
 
         oof_train = np.zeros((ntrain,))
         oof_test = np.zeros((ntest,))
@@ -137,8 +162,8 @@ class ZillowHomePredictionModels:
         ntrain = x_train.shape[0]
         ntest = x_test.shape[0]
         SEED = 42  # for reproducibility
-        NFOLDS = 5  # set folds for out-of-fold prediction
-        kf = KFold(n_splits=NFOLDS, random_state=SEED)
+        NFOLDS = 10  # set folds for out-of-fold prediction
+        kf = KFold(n_splits=NFOLDS, random_state=random_state)
         xgb_params['base_score'] = y_train.mean()
 
         oof_train = np.zeros((ntrain,))
@@ -163,12 +188,13 @@ class ZillowHomePredictionModels:
     def generate_combined_xgb_pred(self, x_train, y_train, x_test):
         #dtest = xgb.DMatrix(x_test)
         xgb_train_pred1, xgb_test_pred1 = self.get_oof_for_xgboost(x_train, y_train, x_test, xgb_params1, 250)
-
         xgb_train_pred2, xgb_test_pred2 = self.get_oof_for_xgboost(x_train, y_train, x_test, xgb_params2, 150)
 
-        new_x_train = pd.DataFrame({"model1": xgb_train_pred1.flatten(), "model2": xgb_train_pred2.flatten()})
-        new_x_test = pd.DataFrame({"model1": xgb_test_pred1.flatten(), "model2": xgb_test_pred2.flatten()})
-        #combined_xgb_model = self.generate_xgb_model(new_x_train, y_train, xgb_params1, 150)
+        new_x_train = pd.DataFrame({"model1": xgb_train_pred1.flatten(),
+                                    "model2": xgb_train_pred2.flatten()})
+        new_x_test = pd.DataFrame({"model1": xgb_test_pred1.flatten(),
+                                   "model2": xgb_test_pred2.flatten()})
+        #combined_xgb_model = self.generate_xgb_model(new_x_train, y_train, xgb_params1, 100)
         combined_xgb_pred = XGB1_WEIGHT*xgb_test_pred1.flatten() + (1-XGB1_WEIGHT)*xgb_test_pred2.flatten()
         #new_d_test = xgb.DMatrix(new_x_test)
         #combined_xgb_pred = self.__get_model_prediction__(combined_xgb_model, new_d_test)
@@ -230,14 +256,14 @@ class ZillowHomePredictionModels:
         # train model
         model = xgb.train(dict(xgb_params, silent=1), dtrain, num_boost_round=num_boost_rounds)
 
-        # mweight = pd.DataFrame.from_dict(model.get_score(), orient="index")
-        # mweight.columns = ["weight"]
-        # mgain = pd.DataFrame.from_dict(model.get_score(importance_type='gain'), orient="index")
-        # mgain.columns = ["gain"]
-        # mcover = pd.DataFrame.from_dict(model.get_score(importance_type='cover'), orient="index")
-        # mcover.columns = ["cover"]
-        # mscore = mweight.merge(mgain, left_index=True, right_index=True)
-        # mscore = mscore.merge(mcover, left_index=True, right_index=True)
-        # print("Model Score")
-        # print(mscore.sort_values("gain", ascending=False))
+        mweight = pd.DataFrame.from_dict(model.get_score(), orient="index")
+        mweight.columns = ["weight"]
+        mgain = pd.DataFrame.from_dict(model.get_score(importance_type='gain'), orient="index")
+        mgain.columns = ["gain"]
+        mcover = pd.DataFrame.from_dict(model.get_score(importance_type='cover'), orient="index")
+        mcover.columns = ["cover"]
+        mscore = mweight.merge(mgain, left_index=True, right_index=True)
+        mscore = mscore.merge(mcover, left_index=True, right_index=True)
+        print("Model Score")
+        print(mscore.sort_values("gain", ascending=False))
         return model

@@ -103,16 +103,37 @@ class ZillowDataRepository:
         data = data.drop(low_gain_and_weight_columns, axis=1)
         return data
 
+    def __transform_to_dummy__(self, data, field, prefix):
+        treated_data = data
+        treated_data = treated_data.merge(pd.get_dummies(treated_data[field], prefix=prefix),
+                                          left_index=True, right_index=True, how='left')
+        treated_data.drop(field, axis=1, inplace=True)
+        return treated_data
+
     def __treat_properties_data__(self, data: pd.DataFrame):
         treated_data = data
+        treated_data = self.__transform_to_dummy__(treated_data, 'propertylandusetypeid', 'landuse')
+        # treated_data = self.__transform_to_dummy__(treated_data, 'architecturalstyletypeid', 'archstyle')
+        # treated_data = self.__transform_to_dummy__(treated_data, 'buildingqualitytypeid', 'qualid')
+        # treated_data = self.__transform_to_dummy__(treated_data, 'buildingclasstypeid', 'classid')
+        # treated_data = self.__transform_to_dummy__(treated_data, 'heatingorsystemtypeid', 'heatid')
+        # treated_data = self.__transform_to_dummy__(treated_data, 'storytypeid', 'storyid')
+        # treated_data = self.__transform_to_dummy__(treated_data, 'typeconstructiontypeid', 'typeid')
+        #treated_data = self.__transform_to_dummy__(treated_data, 'decktypeid', 'deckid')
+        #treated_data = self.__transform_to_dummy__(treated_data, 'airconditioningtypeid', 'aircond')
+        #treated_data = self.__transform_to_dummy__(treated_data, 'hashottuborspa', 'tuborspa')
         treated_data['taxdelinquencyflag'] = treated_data['taxdelinquencyflag'].fillna(False)
 
         for col in treated_data.columns:
             if treated_data[col].dtype == 'object':
                 treated_data[col] = treated_data[col].fillna(-1)
                 lbl = LabelEncoder()
-                lbl.fit(list(data[col].values))
+                lbl.fit(list(treated_data[col].values))
                 treated_data[col] = lbl.transform(list(treated_data[col].values))
+                print('{}.'.format(col))
+                print('unique count: {}'.format(len(np.unique(treated_data[col].values))))
+            if treated_data[col].dtype == np.int64:
+                treated_data[col] = treated_data[col].astype(np.int32)
             if treated_data[col].dtype == np.float64:
                 treated_data[col] = treated_data[col].astype(np.float32)
                 treated_data[col].fillna(treated_data[col].median(),inplace = True)
@@ -123,7 +144,7 @@ class ZillowDataRepository:
                                 dtype={22: np.bool, 32: np.object, 34: np.object, 49: np.bool},
                                 converters={55: self.y_and_n_to_bool_converter})
 
-        #prop_data = self.__remove_data__(prop_data)
+        prop_data = self.__remove_data__(prop_data)
         prop_data = self.__treat_properties_data__(prop_data)
         #prop_data = self.__generate_new_features__(prop_data)
         return prop_data
