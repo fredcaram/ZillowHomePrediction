@@ -6,9 +6,11 @@ from sklearn.model_selection import KFold
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.cross_decomposition import PLSRegression
+import random
 
-random_state = 42
-np.random_state = 42
+np.random.seed(0)
+random.seed(0)
+random_state = 0
 
 # xgboost fix
 mingw_path = 'C:\\Program Files\\mingw-w64\\x86_64-7.1.0-posix-seh-rt_v5-rev2\\mingw64\\bin'
@@ -20,22 +22,11 @@ import xgboost as xgb
 # Global Parameters
 XGB_WEIGHT = 0.6415
 BASELINE_WEIGHT = 0.0050
-OLS_WEIGHT = 0.0856
+OLS_WEIGHT = 0.0828
 
-XGB1_WEIGHT = 0.8#XGB Correlation#0.8083  # Weight of first in combination of two XGB models
+XGB1_WEIGHT = 0.8083#XGB Correlation#  # Weight of first in combination of two XGB models
 
 BASELINE_PRED = 0.0115   # Baseline based on mean of training data, per Oleg
-
-xgb_params1_sklearn = {
-    'learning_rate': 0.0371,
-    'max_depth': 5,
-    'subsample': 0.81,
-    'booster': 'gblinear',
-    'reg_lambda': 0.8,
-    'reg_alpha': 0.4,
-    'silent': True,
-    'seed': random_state
-}
 
 xgb_params1 = {
             'eta': 0.0371,
@@ -45,28 +36,7 @@ xgb_params1 = {
             'eval_metric': 'mae',
             'lambda': 0.8,
             'alpha': 0.4,
-            'silent': 1,
-            'seed': random_state
-        }
-xgb_params3 = {
-            'eta': 0.0271,
-            'max_depth': 5,
-            'subsample': 0.82,
-            'objective': 'reg:linear',
-            'eval_metric': 'mae',
-            'silent': 1,
-            'seed': random_state
-        }
-xgb_params4 = {
-            'eta': 0.0221,
-            'max_depth': 5,
-            'subsample': 0.82,
-            'objective': 'reg:linear',
-            'eval_metric': 'mae',
-            'lambda': 0.8,
-            'alpha': 0.4,
-            'silent': 1,
-            'seed': random_state
+            'silent': 1
         }
 
 xgb_params2 = {
@@ -75,12 +45,21 @@ xgb_params2 = {
             'subsample': 0.79,
             'objective': 'reg:linear',
             'eval_metric': 'mae',
-            'silent': 1,
-            'seed': random_state
+            'silent': 1
         }
 
 class ZillowHomePredictionModels:
+    # This section is (I think) originally derived from SIDHARTH's script:
+    #   https://www.kaggle.com/sidharthkumar/trying-lightgbm
+    # which was forked and tuned by Yuqing Xue:
+    #   https://www.kaggle.com/yuqingxue/lightgbm-85-97
+    # and updated by Andy Harless:
+    #   https://www.kaggle.com/aharless/lightgbm-with-outliers-remaining
     def generate_lgb_model(self, X_train, y_train):
+        drop_cols = [
+            'propertyzoningdesc', 'propertycountylandusecode',
+            'fireplacecnt', 'fireplaceflag'
+        ]
         d_train = lgb.Dataset(X_train, label=y_train)
         lgb_params = {
             'max_bin': 10,
@@ -119,12 +98,18 @@ class ZillowHomePredictionModels:
         return df[valid_columns]
 
     def get_ols_prediction(self, ols_model, properties_df, transaction_date):
-        ols_x_test = properties_df
+        ols_x_test = properties_df.copy()
         ols_x_test["transactiondate"] = transaction_date
         ols_x_test = self.get_ols_features(ols_x_test)
         return self.__get_model_prediction__(ols_model, ols_x_test)
 
+    # This section is derived from the1owl's notebook:
+    #    https://www.kaggle.com/the1owl/primer-for-the-zillow-pred-approach
+    # which Andy Harless updated and made into a script:
+    #    https://www.kaggle.com/aharless/updated-script-version-of-the1owl-s-basic-ols
     def generate_ols_model(self, x_train, transaction_date, y_train):
+        np.random.seed(17)
+        random.seed(17)
         ols_x_train = x_train
         ols_x_train['transactiondate'] = transaction_date
         ols_x_train = self.get_ols_features(ols_x_train)
@@ -185,15 +170,24 @@ class ZillowHomePredictionModels:
         oof_test[:] = oof_test_skf.mean(axis=0)
         return oof_train.reshape(-1, 1), oof_test.reshape(-1, 1)
 
+    # This section is originally derived from Infinite Wing's script:
+    #   https://www.kaggle.com/infinitewing/xgboost-without-outliers-lb-0-06463
+    # inspired by this thread:
+    #   https://www.kaggle.com/c/zillow-prize-1/discussion/33710
+    # but the code has gone through a lot of changes since then
     def generate_combined_xgb_pred(self, x_train, y_train, x_test):
-        #dtest = xgb.DMatrix(x_test)
-        xgb_train_pred1, xgb_test_pred1 = self.get_oof_for_xgboost(x_train, y_train, x_test, xgb_params1, 250)
-        xgb_train_pred2, xgb_test_pred2 = self.get_oof_for_xgboost(x_train, y_train, x_test, xgb_params2, 150)
-
-        new_x_train = pd.DataFrame({"model1": xgb_train_pred1.flatten(),
-                                    "model2": xgb_train_pred2.flatten()})
-        new_x_test = pd.DataFrame({"model1": xgb_test_pred1.flatten(),
-                                   "model2": xgb_test_pred2.flatten()})
+        dtest = xgb.DMatrix(x_test)
+        model1 = self.generate_xgb_model(x_train, y_train, xgb_params1, 250)
+        xgb_test_pred1 = self.__get_model_prediction__(model1, dtest)
+        model2 = self.generate_xgb_model(x_train, y_train, xgb_params2, 150)
+        xgb_test_pred2 = self.__get_model_prediction__(model2, dtest)
+        # xgb_train_pred1, xgb_test_pred1 = self.get_oof_for_xgboost(x_train, y_train, x_test, xgb_params1, 250)
+        # xgb_train_pred2, xgb_test_pred2 = self.get_oof_for_xgboost(x_train, y_train, x_test, xgb_params2, 150)
+        #
+        # new_x_train = pd.DataFrame({"model1": xgb_train_pred1.flatten(),
+        #                             "model2": xgb_train_pred2.flatten()})
+        # new_x_test = pd.DataFrame({"model1": xgb_test_pred1.flatten(),
+        #                            "model2": xgb_test_pred2.flatten()})
         #combined_xgb_model = self.generate_xgb_model(new_x_train, y_train, xgb_params1, 100)
         combined_xgb_pred = XGB1_WEIGHT*xgb_test_pred1.flatten() + (1-XGB1_WEIGHT)*xgb_test_pred2.flatten()
         #new_d_test = xgb.DMatrix(new_x_test)
@@ -215,7 +209,14 @@ class ZillowHomePredictionModels:
         baseline_weight0 = BASELINE_WEIGHT / (1 - OLS_WEIGHT)
         xgb_pred = self.generate_combined_xgb_pred(x_train, y_train, x_test)
 
-        lgb_pred = self.__get_model_prediction__(self.generate_lgb_model(x_train, y_train), x_test)
+        lgb_drop_cols = [
+            'propertyzoningdesc', 'propertycountylandusecode',
+            'fireplacecnt', 'fireplaceflag'
+        ]
+        lgb_x_train = x_train.drop(lgb_drop_cols, axis=1)
+        lgb_x_test = x_test.drop(lgb_drop_cols, axis=1)
+        lgb_pred = self.__get_model_prediction__(self.generate_lgb_model(lgb_x_train, y_train),
+                                                 lgb_x_test)
         pred0 = xgb_weight0 * xgb_pred + baseline_weight0 * BASELINE_PRED + lgb_weight * lgb_pred
         return pred0
 

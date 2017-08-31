@@ -3,6 +3,7 @@
 #https://www.kaggle.com/c/zillow-prize-1/discussion/33710
 #https://www.kaggle.com/philippsp/exploratory-analysis-zillow
 #https://www.kaggle.com/davidfumo/boosted-trees-lb-0-0643707/code
+#https://www.kaggle.com/aharless/xgboost-lightgbm-and-ols/output
 import os
 from datetime import datetime
 
@@ -10,6 +11,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import KFold
 
 import ZillowDataDecomposition
 import ZillowDataRepository
@@ -114,6 +116,32 @@ class ZillowHomePrediction():
         print(mean_squared_error(y_test, pred))
         print(mean_absolute_error(y_test, pred))
 
+    def cv_test_combined_models(self):
+        data = self.data_repo.get_merged_data()
+        x_train, y_train = self.__get_train_data_for_submission__(data)
+
+        NFOLDS=10
+        random_state = 42
+        kf = KFold(n_splits=NFOLDS, random_state=random_state)
+
+        columns = ['201610', '201611', '201612', '201710', '201711', '201712']
+        maes = []
+
+        for i, (train_index, test_index) in enumerate(kf.split(x_train, y_train)):
+            df = data.iloc[train_index, :]
+            x_tr = x_train.iloc[train_index, :]
+            y_tr = y_train[train_index]
+            x_te = x_train.iloc[test_index, :]
+            y_te = y_train[test_index]
+
+            pred = self.zillow_models.generate_all_combined_predictions(df, x_te, x_te.index.values, x_tr,
+                                                                          y_tr)
+            for col in columns:
+                mae = mean_absolute_error(y_te, pred[col])
+                maes.append(mae)
+
+        avg_mae = np.average(maes)
+        print('CV AVG MAE:{}'.format(avg_mae))
 
     def test_with_xgboost(self, xgb_params=xgb_params, boost_rounds=150):
         data = self.data_repo.get_merged_data()
@@ -129,7 +157,7 @@ class ZillowHomePrediction():
 
 
 home_pred = ZillowHomePrediction()
-#home_pred.test_combined_models()
+#home_pred.cv_test_combined_models()
 #home_pred.test_with_xgboost(xgb_params1, 250)
 #home_pred.test_with_xgboost(xgb_params2, 150)
 #home_pred.generate_combined_model_with_decomp_submission()
