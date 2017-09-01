@@ -47,12 +47,12 @@ class ZillowDataRepository:
         return data_frame
 
     def __remove_data__(self, data):
-        # low_gain_and_weight_columns = [
-        #     'propertyzoningdesc', 'propertycountylandusecode',
-        #     'fireplacecnt', 'fireplaceflag'
-        # ]
-        #
-        # data = data.drop(low_gain_and_weight_columns, axis=1)
+        low_gain_and_weight_columns = [
+        #    'propertyzoningdesc', 'propertycountylandusecode',
+            'fireplacecnt', 'fireplaceflag'
+        ]
+
+        data = data.drop(low_gain_and_weight_columns, axis=1)
         return data
 
     def __transform_to_dummy__(self, data, field, prefix):
@@ -64,7 +64,7 @@ class ZillowDataRepository:
 
     def __treat_properties_data__(self, data: pd.DataFrame):
         treated_data = data
-        #treated_data = self.__transform_to_dummy__(treated_data, 'propertylandusetypeid', 'landuse')
+        treated_data = self.__transform_to_dummy__(treated_data, 'propertylandusetypeid', 'landuse')
         # treated_data = self.__transform_to_dummy__(treated_data, 'architecturalstyletypeid', 'archstyle')
         # treated_data = self.__transform_to_dummy__(treated_data, 'buildingqualitytypeid', 'qualid')
         # treated_data = self.__transform_to_dummy__(treated_data, 'buildingclasstypeid', 'classid')
@@ -110,7 +110,7 @@ class ZillowDataRepository:
         #prop_data['taxpersquarefeet'] = prop_data.taxamount / prop_data.finishedsquarefeet12
         #prop_data['constructedareaproportion'] = prop_data.finishedsquarefeet12 / prop_data.lotsizesquarefeet
         #prop_data['numberofparcels'] = prop_data.taxvaluedollarcnt / prop_data.taxamount
-        prop_data['taxwhenoverdue'] = prop_data.taxdelinquencyflag * prop_data.taxamount
+        #prop_data['taxwhenoverdue'] = prop_data.taxdelinquencyflag * prop_data.taxamount
 
         # Not worth removing
         # prop_data['pooltype7reason'] = prop_data.pooltypeid7 / prop_data.poolcnt

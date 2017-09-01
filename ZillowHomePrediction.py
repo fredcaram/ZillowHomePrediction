@@ -120,7 +120,7 @@ class ZillowHomePrediction():
         data = self.data_repo.get_merged_data()
         x_train, y_train = self.__get_train_data_for_submission__(data)
 
-        NFOLDS=10
+        NFOLDS=5
         random_state = 42
         kf = KFold(n_splits=NFOLDS, random_state=random_state)
 

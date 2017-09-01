@@ -21,17 +21,17 @@ import xgboost as xgb
 
 # Global Parameters
 XGB_WEIGHT = 0.6415
-BASELINE_WEIGHT = 0.0050
+BASELINE_WEIGHT = 0.0056
 OLS_WEIGHT = 0.0828
 
-XGB1_WEIGHT = 0.8083#XGB Correlation#  # Weight of first in combination of two XGB models
+XGB1_WEIGHT = 0.80#0.8083#0.9013 XGB Correlation#  # Weight of first in combination of two XGB models
 
 BASELINE_PRED = 0.0115   # Baseline based on mean of training data, per Oleg
 
 xgb_params1 = {
             'eta': 0.0371,
             'max_depth': 5,
-            'subsample': 0.82,
+            'subsample': 0.81,
             'objective': 'reg:linear',
             'eval_metric': 'mae',
             'lambda': 0.8,
@@ -66,7 +66,7 @@ class ZillowHomePredictionModels:
             'learning_rate': 0.0021,  # shrinkage_rate
             'boosting_type': 'gbdt',
             'objective': 'regression',
-            'metric': 'l1',
+            'metric': 'mae',
             'sub_feature': 0.345,
             'bagging_fraction': 0.85,  # sub_row
             'bagging_freq': 40,
@@ -86,16 +86,17 @@ class ZillowHomePredictionModels:
         return np.sum([abs(y[i] - ypred[i]) for i in range(len(y))]) / len(y)
 
     def get_ols_features(self, df:pd.DataFrame):
-        df["transactiondate"] = pd.to_datetime(df["transactiondate"])
-        df["transactiondate_year"] = df["transactiondate"].dt.year
-        df["transactiondate_month"] = df["transactiondate"].dt.month
-        df['transactiondate'] = df['transactiondate'].dt.quarter
-        df = df.fillna(-1.0)
+        ols_df = df.copy()
+        ols_df["transactiondate"] = pd.to_datetime(ols_df["transactiondate"])
+        ols_df["transactiondate_year"] = ols_df["transactiondate"].dt.year
+        ols_df["transactiondate_month"] = ols_df["transactiondate"].dt.month
+        ols_df['transactiondate'] = ols_df['transactiondate'].dt.quarter
+        ols_df = ols_df.fillna(-1.0)
 
         #to_remove = [df.columns[c]for c in range(len(df.columns)) if df.dtypes[c] == 'int64']
         to_remove = ['logerror', 'parcelid'] #+ to_remove
-        valid_columns = [c for c in df.columns if c not in to_remove]
-        return df[valid_columns]
+        valid_columns = [c for c in ols_df.columns if c not in to_remove]
+        return ols_df[valid_columns]
 
     def get_ols_prediction(self, ols_model, properties_df, transaction_date):
         ols_x_test = properties_df.copy()
@@ -110,7 +111,7 @@ class ZillowHomePredictionModels:
     def generate_ols_model(self, x_train, transaction_date, y_train):
         np.random.seed(17)
         random.seed(17)
-        ols_x_train = x_train
+        ols_x_train = x_train.copy()
         ols_x_train['transactiondate'] = transaction_date
         ols_x_train = self.get_ols_features(ols_x_train)
         reg = LinearRegression(n_jobs=-1)
@@ -176,14 +177,14 @@ class ZillowHomePredictionModels:
     #   https://www.kaggle.com/c/zillow-prize-1/discussion/33710
     # but the code has gone through a lot of changes since then
     def generate_combined_xgb_pred(self, x_train, y_train, x_test):
-        dtest = xgb.DMatrix(x_test)
-        model1 = self.generate_xgb_model(x_train, y_train, xgb_params1, 250)
-        xgb_test_pred1 = self.__get_model_prediction__(model1, dtest)
-        model2 = self.generate_xgb_model(x_train, y_train, xgb_params2, 150)
-        xgb_test_pred2 = self.__get_model_prediction__(model2, dtest)
-        # xgb_train_pred1, xgb_test_pred1 = self.get_oof_for_xgboost(x_train, y_train, x_test, xgb_params1, 250)
-        # xgb_train_pred2, xgb_test_pred2 = self.get_oof_for_xgboost(x_train, y_train, x_test, xgb_params2, 150)
-        #
+        # dtest = xgb.DMatrix(x_test)
+        # model1 = self.generate_xgb_model(x_train, y_train, xgb_params1, 250)
+        # xgb_test_pred1 = self.__get_model_prediction__(model1, dtest)
+        # model2 = self.generate_xgb_model(x_train, y_train, xgb_params2, 150)
+        # xgb_test_pred2 = self.__get_model_prediction__(model2, dtest)
+        xgb_train_pred1, xgb_test_pred1 = self.get_oof_for_xgboost(x_train, y_train, x_test, xgb_params1, 250)
+        xgb_train_pred2, xgb_test_pred2 = self.get_oof_for_xgboost(x_train, y_train, x_test, xgb_params2, 150)
+
         # new_x_train = pd.DataFrame({"model1": xgb_train_pred1.flatten(),
         #                             "model2": xgb_train_pred2.flatten()})
         # new_x_test = pd.DataFrame({"model1": xgb_test_pred1.flatten(),
@@ -211,7 +212,7 @@ class ZillowHomePredictionModels:
 
         lgb_drop_cols = [
             'propertyzoningdesc', 'propertycountylandusecode',
-            'fireplacecnt', 'fireplaceflag'
+            #'fireplacecnt', 'fireplaceflag'
         ]
         lgb_x_train = x_train.drop(lgb_drop_cols, axis=1)
         lgb_x_test = x_test.drop(lgb_drop_cols, axis=1)
