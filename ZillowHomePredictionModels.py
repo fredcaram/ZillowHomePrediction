@@ -8,6 +8,9 @@ from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.cross_decomposition import PLSRegression
 import random
 
+
+import ZillowHighCardinalityDataHandler
+
 np.random.seed(0)
 random.seed(0)
 random_state = 0
@@ -26,7 +29,8 @@ OLS_WEIGHT = 0.0828
 
 XGB1_WEIGHT = 0.80#0.8083#0.9013 XGB Correlation#  # Weight of first in combination of two XGB models
 
-BASELINE_PRED = 0.0115   # Baseline based on mean of training data, per Oleg
+BASELINE_PRED = 0.0114572195563 # Baseline based on mean of training data, per https://www.kaggle.com/bbrandt/using-avg-for-each-landusetypeid-for-prediction
+#BASELINE_PRED = 0.0115   # Baseline based on mean of training data, per Oleg
 
 xgb_params1 = {
             'eta': 0.0371,
@@ -60,6 +64,7 @@ class ZillowHomePredictionModels:
             'propertyzoningdesc', 'propertycountylandusecode',
             'fireplacecnt', 'fireplaceflag'
         ]
+        # X_train = X_train.drop(drop_cols, axis=1)
         d_train = lgb.Dataset(X_train, label=y_train)
         lgb_params = {
             'max_bin': 10,
@@ -93,8 +98,8 @@ class ZillowHomePredictionModels:
         ols_df['transactiondate'] = ols_df['transactiondate'].dt.quarter
         ols_df = ols_df.fillna(-1.0)
 
-        #to_remove = [df.columns[c]for c in range(len(df.columns)) if df.dtypes[c] == 'int64']
-        to_remove = ['logerror', 'parcelid'] #+ to_remove
+        to_remove = [df.columns[c]for c in range(len(df.columns)) if df.dtypes[c] == 'int32']
+        to_remove = ['logerror', 'parcelid'] + to_remove
         valid_columns = [c for c in ols_df.columns if c not in to_remove]
         return ols_df[valid_columns]
 
@@ -148,7 +153,7 @@ class ZillowHomePredictionModels:
         ntrain = x_train.shape[0]
         ntest = x_test.shape[0]
         SEED = 42  # for reproducibility
-        NFOLDS = 10  # set folds for out-of-fold prediction
+        NFOLDS = 5  # set folds for out-of-fold prediction
         kf = KFold(n_splits=NFOLDS, random_state=random_state)
         xgb_params['base_score'] = y_train.mean()
 
@@ -176,7 +181,14 @@ class ZillowHomePredictionModels:
     # inspired by this thread:
     #   https://www.kaggle.com/c/zillow-prize-1/discussion/33710
     # but the code has gone through a lot of changes since then
+    # High cardinality treatment was taken from:
+    # https://www.kaggle.com/scirpus/genetic-programming-lb-0-0643904
     def generate_combined_xgb_pred(self, x_train, y_train, x_test):
+        #highCardDataHandler = ZillowHighCardinalityDataHandler.ZillowHighCardinalityDataHandler(x_train, y_train, x_test)
+        #x_train, x_test = highCardDataHandler.high_cardinality_to_mean()
+        #x_train.drop('y', axis=1, inplace=True)
+        #x_test.drop('y', axis=1, inplace=True)
+
         # dtest = xgb.DMatrix(x_test)
         # model1 = self.generate_xgb_model(x_train, y_train, xgb_params1, 250)
         # xgb_test_pred1 = self.__get_model_prediction__(model1, dtest)
@@ -221,7 +233,7 @@ class ZillowHomePredictionModels:
         pred0 = xgb_weight0 * xgb_pred + baseline_weight0 * BASELINE_PRED + lgb_weight * lgb_pred
         return pred0
 
-    def generate_all_combined_predictions(self, merged_df, x_test, x_test_index, x_train, y_train):
+    def generate_all_combined_predictions(self, merged_df, x_test, x_test_index, x_train, y_train, scaler=None):
         dates = ['2016-10-01', '2016-11-01', '2016-12-01', '2017-10-01', '2017-11-01', '2017-12-01']
         columns = ['201610', '201611', '201612', '201710', '201711', '201712']
         output = pd.DataFrame({'ParcelId': x_test_index})
@@ -231,6 +243,8 @@ class ZillowHomePredictionModels:
             transaction_date = dates[i]
             ols_pred = self.get_ols_prediction(ols_model, x_test, transaction_date)
             pred = OLS_WEIGHT * ols_pred + (1 - OLS_WEIGHT) * pred0
+            if not scaler is None:
+                pred = scaler.inverse_transform(pred)
             output[columns[i]] = [float(format(x, '.4f')) for x in pred]
 
         return output

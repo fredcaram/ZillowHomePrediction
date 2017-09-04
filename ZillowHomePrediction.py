@@ -88,7 +88,9 @@ class ZillowHomePrediction():
         X_train, y_train = self.__get_train_data_for_submission__(data)
 
         x_test = self.data_repo.get_properties_data()
-        output = self.zillow_models.generate_all_combined_predictions(data, x_test, x_test.index.values, X_train, y_train)
+        output = self.zillow_models.generate_all_combined_predictions(data, x_test,
+                                                                      x_test.index.values, X_train, y_train,
+                                                                      self.data_repo.train_data_scaler)
         output.to_csv('Submissions\\sub{}.csv.gz'.format(datetime.now().strftime('%Y%m%d_%H%M%S')),
                       index=False, compression='gzip')
 

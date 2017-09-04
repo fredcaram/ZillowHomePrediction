@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 
-import ZillowEmptyDataHandler
+import ZillowHighCardinalityDataHandler
 
 #based on https://www.kaggle.com/danieleewww/xgboost-without-outliers-lb-0-06463/code
 #inspired on:
@@ -10,13 +10,15 @@ import ZillowEmptyDataHandler
 #https://www.kaggle.com/philippsp/exploratory-analysis-zillow
 
 class ZillowDataRepository:
-    def __init__(self):
+    def __init__(self, prop_scaler=None, train_scaler=None):
         self.dir = "Data\\"
         self.train_data_file = "train_2016_v2.csv"
         self.properties_file = "properties_2016.csv"
         self.__train_data__ = None
         self.__properties_data__ = None
         self.__merged_data__ = None
+        self.properties_data_scaler = prop_scaler
+        self.train_data_scaler = train_scaler
 
     def get_train_data(self):
         if self.__train_data__ is None:
@@ -38,6 +40,11 @@ class ZillowDataRepository:
 
     def __read_train_data__(self) -> pd.DataFrame:
         train_data = pd.read_csv(self.dir + self.train_data_file, index_col=0)
+
+        if not self.train_data_scaler is None:
+            self.train_data_scaler.fit(train_data['logerror'])
+            train_data['logerror'] = self.train_data_scaler.transform(train_data['logerror'])
+
         #train_data = self.__treat_train_data__(train_data)
         return train_data
 
@@ -73,11 +80,12 @@ class ZillowDataRepository:
         # treated_data = self.__transform_to_dummy__(treated_data, 'typeconstructiontypeid', 'typeid')
         #treated_data = self.__transform_to_dummy__(treated_data, 'decktypeid', 'deckid')
         #treated_data = self.__transform_to_dummy__(treated_data, 'airconditioningtypeid', 'aircond')
-        #treated_data = self.__transform_to_dummy__(treated_data, 'hashottuborspa', 'tuborspa')
+        treated_data = self.__transform_to_dummy__(treated_data, 'hashottuborspa', 'tuborspa')
         #treated_data['taxdelinquencyflag'] = treated_data['taxdelinquencyflag'].fillna(False)
 
         for col in treated_data.columns:
             if treated_data[col].dtype == 'object':
+                #treated_data[col] = treated_data[col].fillna(treated_data[col].median())
                 treated_data[col] = treated_data[col].fillna(-1)
                 lbl = LabelEncoder()
                 lbl.fit(list(treated_data[col].values))
@@ -89,6 +97,11 @@ class ZillowDataRepository:
             if treated_data[col].dtype == np.float64:
                 treated_data[col] = treated_data[col].astype(np.float32)
                 treated_data[col].fillna(treated_data[col].median(),inplace = True)
+
+        if not self.properties_data_scaler is None:
+            self.properties_data_scaler.fit(treated_data[treated_data.columns])
+            treated_data[treated_data.columns] = self.properties_data_scaler.transform(treated_data[treated_data.columns])
+
         return treated_data
 
     def __read_properties_data__(self) -> pd.DataFrame:
