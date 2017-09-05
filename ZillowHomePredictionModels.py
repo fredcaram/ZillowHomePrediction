@@ -23,7 +23,7 @@ import xgboost as xgb
 
 
 # Global Parameters
-XGB_WEIGHT = 0.6415
+XGB_WEIGHT = 0.64155
 BASELINE_WEIGHT = 0.0056
 OLS_WEIGHT = 0.0828
 

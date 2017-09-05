@@ -49,11 +49,12 @@ class ZillowDataRepository:
         return train_data
 
     def remove_outliers(self, data_frame: pd.DataFrame) -> pd.DataFrame:
-        data_frame = data_frame[data_frame.logerror > -0.4]
-        data_frame = data_frame[data_frame.logerror < 0.419]
+        data_frame = data_frame[data_frame.logerror > -0.418]
+        data_frame = data_frame[data_frame.logerror < 0.418]
         return data_frame
 
     def __remove_data__(self, data):
+        #Removing 'propertyzoningdesc', 'propertycountylandusecode' hurt the performance badly
         low_gain_and_weight_columns = [
         #    'propertyzoningdesc', 'propertycountylandusecode',
             'fireplacecnt', 'fireplaceflag'
@@ -85,7 +86,6 @@ class ZillowDataRepository:
 
         for col in treated_data.columns:
             if treated_data[col].dtype == 'object':
-                #treated_data[col] = treated_data[col].fillna(treated_data[col].median())
                 treated_data[col] = treated_data[col].fillna(-1)
                 lbl = LabelEncoder()
                 lbl.fit(list(treated_data[col].values))
