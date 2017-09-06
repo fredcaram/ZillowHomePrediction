@@ -29,7 +29,7 @@ XGB_WEIGHT = 0.64155
 BASELINE_WEIGHT = 0.0056
 OLS_WEIGHT = 0.0828
 
-XGB1_WEIGHT = 0.80#0.8083#0.9013 XGB Correlation#  # Weight of first in combination of two XGB models
+XGB1_WEIGHT = 0.8083#0.80#0.8083#0.9013 XGB Correlation#  # Weight of first in combination of two XGB models
 
 BASELINE_PRED = 0.0114572195563 # Baseline based on mean of training data, per https://www.kaggle.com/bbrandt/using-avg-for-each-landusetypeid-for-prediction
 #BASELINE_PRED = 0.0115   # Baseline based on mean of training data, per Oleg

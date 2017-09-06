@@ -75,7 +75,7 @@ class ZillowDataRepository:
         treated_data = self.__transform_to_dummy__(treated_data, 'propertylandusetypeid', 'landuse')
         # treated_data = self.__transform_to_dummy__(treated_data, 'architecturalstyletypeid', 'archstyle')
         # treated_data = self.__transform_to_dummy__(treated_data, 'buildingqualitytypeid', 'qualid')
-        treated_data = self.__transform_to_dummy__(treated_data, 'buildingclasstypeid', 'classid')
+        # treated_data = self.__transform_to_dummy__(treated_data, 'buildingclasstypeid', 'classid') -> score 0.0644840
         # treated_data = self.__transform_to_dummy__(treated_data, 'heatingorsystemtypeid', 'heatid')
         # treated_data = self.__transform_to_dummy__(treated_data, 'storytypeid', 'storyid')
         # treated_data = self.__transform_to_dummy__(treated_data, 'typeconstructiontypeid', 'typeid')
