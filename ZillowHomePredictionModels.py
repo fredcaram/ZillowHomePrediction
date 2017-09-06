@@ -13,9 +13,9 @@ import random
 
 import ZillowHighCardinalityDataHandler
 
-np.random.seed(0)
-random.seed(0)
-random_state = 0
+np.random.seed(42)
+random.seed(42)
+random_state = 42
 
 # xgboost fix
 mingw_path = 'C:\\Program Files\\mingw-w64\\x86_64-7.1.0-posix-seh-rt_v5-rev2\\mingw64\\bin'
@@ -26,12 +26,12 @@ import xgboost as xgb
 
 # Global Parameters
 XGB_WEIGHT = 0.64155
-BASELINE_WEIGHT = 0.0056
+BASELINE_WEIGHT = 0.0050#0.0056
 OLS_WEIGHT = 0.0828
 
-XGB1_WEIGHT = 0.9013#0.80#0.8083#0.9013 XGB Correlation#  # Weight of first in combination of two XGB models
+XGB1_WEIGHT = 0.8#0.80#0.8083#0.9013 XGB Correlation#  # Weight of first in combination of two XGB models
 
-BASELINE_PRED = 0.0114572195563 # Baseline based on mean of training data, per https://www.kaggle.com/bbrandt/using-avg-for-each-landusetypeid-for-prediction
+BASELINE_PRED = 0.0115 # Baseline based on mean of training data, per https://www.kaggle.com/bbrandt/using-avg-for-each-landusetypeid-for-prediction
 #BASELINE_PRED = 0.0115   # Baseline based on mean of training data, per Oleg
 
 xgb_params1 = {
@@ -42,7 +42,8 @@ xgb_params1 = {
             'eval_metric': 'mae',
             'lambda': 0.8,
             'alpha': 0.4,
-            'silent': 1
+            'silent': 1,
+            'seed': random_state
         }
 
 xgb_params2 = {
@@ -51,7 +52,8 @@ xgb_params2 = {
             'subsample': 0.79,
             'objective': 'reg:linear',
             'eval_metric': 'mae',
-            'silent': 1
+            'silent': 1,
+            'seed': random_state
         }
 
 class ZillowHomePredictionModels:
@@ -73,7 +75,7 @@ class ZillowHomePredictionModels:
             'learning_rate': 0.0021,  # shrinkage_rate
             'boosting_type': 'gbdt',
             'objective': 'regression',
-            'metric': 'mae',
+            'metric': 'l1',
             'sub_feature': 0.345,
             'bagging_fraction': 0.85,  # sub_row
             'bagging_freq': 40,
@@ -163,7 +165,7 @@ class ZillowHomePredictionModels:
         ntrain = x_train.shape[0]
         ntest = x_test.shape[0]
         SEED = 42  # for reproducibility
-        NFOLDS = 5  # set folds for out-of-fold prediction
+        NFOLDS = 10  # set folds for out-of-fold prediction
         kf = KFold(n_splits=NFOLDS, random_state=random_state)
         xgb_params['base_score'] = y_train.mean()
 

@@ -49,8 +49,8 @@ class ZillowDataRepository:
         return train_data
 
     def remove_outliers(self, data_frame: pd.DataFrame) -> pd.DataFrame:
-        data_frame = data_frame[data_frame.logerror > -0.418]
-        data_frame = data_frame[data_frame.logerror < 0.418]
+        data_frame = data_frame[data_frame.logerror > -0.4]
+        data_frame = data_frame[data_frame.logerror < 0.42]
         return data_frame
 
     def __remove_data__(self, data):
@@ -81,7 +81,7 @@ class ZillowDataRepository:
         # treated_data = self.__transform_to_dummy__(treated_data, 'typeconstructiontypeid', 'typeid')
         #treated_data = self.__transform_to_dummy__(treated_data, 'decktypeid', 'deckid')
         #treated_data = self.__transform_to_dummy__(treated_data, 'airconditioningtypeid', 'aircond')
-        treated_data = self.__transform_to_dummy__(treated_data, 'hashottuborspa', 'tuborspa')
+        #treated_data = self.__transform_to_dummy__(treated_data, 'hashottuborspa', 'tuborspa')
         #treated_data['taxdelinquencyflag'] = treated_data['taxdelinquencyflag'].fillna(False)
 
         for col in treated_data.columns:
