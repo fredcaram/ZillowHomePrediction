@@ -83,6 +83,17 @@ class ZillowHomePrediction():
         output = output[cols]
         output.to_csv('Submissions\\sub{}.csv'.format(datetime.now().strftime('%Y%m%d_%H%M%S')), index=False)
 
+    def generate_combined_model_submission_with_date(self):
+        data = self.data_repo.get_merged_data()
+        X_train, y_train = self.__get_train_data_for_submission__(data)
+
+        x_test = self.data_repo.get_properties_data()
+        output = self.zillow_models.generate_all_combined_predictions_with_date(data, x_test,
+                                                                      x_test.index.values, X_train, y_train,
+                                                                      self.data_repo.train_data_scaler)
+        output.to_csv('Submissions\\sub{}.csv.gz'.format(datetime.now().strftime('%Y%m%d_%H%M%S')),
+                      index=False, compression='gzip')
+
     def generate_combined_model_submission(self):
         data = self.data_repo.get_merged_data()
         X_train, y_train = self.__get_train_data_for_submission__(data)
@@ -163,4 +174,5 @@ home_pred = ZillowHomePrediction()
 #home_pred.test_with_xgboost(xgb_params1, 250)
 #home_pred.test_with_xgboost(xgb_params2, 150)
 #home_pred.generate_combined_model_with_decomp_submission()
+#home_pred.generate_combined_model_submission()
 home_pred.generate_combined_model_submission()

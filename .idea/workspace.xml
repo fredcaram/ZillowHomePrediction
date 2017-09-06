@@ -4,6 +4,7 @@
     <list default="true" id="abf2efbb-66a3-4154-b1ac-c238b0e15153" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ZillowDataRepository.py" afterPath="$PROJECT_DIR$/ZillowDataRepository.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ZillowHomePrediction.py" afterPath="$PROJECT_DIR$/ZillowHomePrediction.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ZillowHomePredictionModels.py" afterPath="$PROJECT_DIR$/ZillowHomePredictionModels.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -18,8 +19,8 @@
       <file leaf-file-name="ZillowHomePrediction.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/ZillowHomePrediction.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="334">
-              <caret line="52" column="34" lean-forward="false" selection-start-line="52" selection-start-column="34" selection-end-line="52" selection-end-column="34" />
+            <state relative-caret-position="2374">
+              <caret line="157" column="0" lean-forward="true" selection-start-line="157" selection-start-column="0" selection-end-line="157" selection-end-column="0" />
               <folding>
                 <element signature="e#351#360#0" expanded="true" />
               </folding>
@@ -27,24 +28,24 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="ZillowHomePredictionModels.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="ZillowHomePredictionModels.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/ZillowHomePredictionModels.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="3652">
-              <caret line="226" column="13" lean-forward="true" selection-start-line="226" selection-start-column="13" selection-end-line="226" selection-end-column="13" />
+            <state relative-caret-position="31">
+              <caret line="228" column="45" lean-forward="false" selection-start-line="228" selection-start-column="8" selection-end-line="228" selection-end-column="45" />
               <folding>
                 <element signature="e#0#9#0" expanded="true" />
-                <marker date="1504621470436" expanded="true" signature="999:1260" ph="..." />
+                <marker date="1504717202822" expanded="true" signature="1010:1271" ph="..." />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="ZillowDataRepository.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="ZillowDataRepository.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/ZillowDataRepository.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1003">
-              <caret line="59" column="8" lean-forward="true" selection-start-line="59" selection-start-column="8" selection-end-line="59" selection-end-column="8" />
+            <state relative-caret-position="481">
+              <caret line="77" column="85" lean-forward="false" selection-start-line="77" selection-start-column="66" selection-end-line="77" selection-end-column="85" />
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
               </folding>
@@ -55,7 +56,7 @@
       <file leaf-file-name="ZillowHighCardinalityDataHandler.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/ZillowHighCardinalityDataHandler.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1054">
+            <state relative-caret-position="838">
               <caret line="64" column="17" lean-forward="false" selection-start-line="64" selection-start-column="17" selection-end-line="64" selection-end-column="17" />
               <folding>
                 <element signature="e#0#41#0" expanded="true" />
@@ -123,8 +124,8 @@
         <option value="$PROJECT_DIR$/ZillowDataDecomposition.py" />
         <option value="$PROJECT_DIR$/AndyHarlessScript.py" />
         <option value="$PROJECT_DIR$/ZillowHighCardinalityDataHandler.py" />
-        <option value="$PROJECT_DIR$/ZillowHomePrediction.py" />
         <option value="$PROJECT_DIR$/ZillowHomePredictionModels.py" />
+        <option value="$PROJECT_DIR$/ZillowHomePrediction.py" />
         <option value="$PROJECT_DIR$/ZillowDataRepository.py" />
       </list>
     </option>
@@ -151,6 +152,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="Scratches" />
       <pane id="ProjectPane">
         <subPane>
@@ -168,7 +170,6 @@
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -287,7 +288,7 @@
     <frame x="-1928" y="-8" width="1936" height="1056" extended-state="6" />
     <editor active="true" />
     <layout>
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.18070363" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.18230277" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.21451788" sideWeight="0.53837955" order="0" side_tool="true" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32936078" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
@@ -297,7 +298,7 @@
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3997833" sideWeight="0.4666161" order="9" side_tool="false" content_ui="tabs" />
-      <window_info id="Data View" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.26226014" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Data View" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.26226014" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
@@ -337,7 +338,7 @@
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/ZillowHomePredictionModels.py</url>
-          <line>188</line>
+          <line>198</line>
           <option name="timeStamp" value="37" />
         </line-breakpoint>
       </breakpoints>
@@ -351,11 +352,11 @@
           </properties>
         </breakpoint>
       </default-breakpoints>
-      <option name="time" value="40" />
+      <option name="time" value="42" />
     </breakpoint-manager>
     <watches-manager>
       <configuration name="PythonConfigurationType">
-        <watch expression="X_train.head()" language="Python" />
+        <watch expression="x_train.shape" language="Python" />
         <watch expression="x_test.head()" language="Python" />
       </configuration>
     </watches-manager>
@@ -415,7 +416,7 @@
           <caret line="29" column="0" lean-forward="true" selection-start-line="29" selection-start-column="0" selection-end-line="29" selection-end-column="0" />
           <folding>
             <element signature="e#0#9#0" expanded="true" />
-            <marker date="1504621470436" expanded="true" signature="999:1260" ph="..." />
+            <marker date="1504717202822" expanded="true" signature="1010:1271" ph="..." />
           </folding>
         </state>
       </provider>
@@ -471,7 +472,7 @@
           <caret line="20" column="0" lean-forward="true" selection-start-line="20" selection-start-column="0" selection-end-line="20" selection-end-column="0" />
           <folding>
             <element signature="e#0#9#0" expanded="true" />
-            <marker date="1504621470436" expanded="true" signature="999:1260" ph="..." />
+            <marker date="1504717202822" expanded="true" signature="1010:1271" ph="..." />
           </folding>
         </state>
       </provider>
@@ -676,16 +677,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/ZillowHighCardinalityDataHandler.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1054">
-          <caret line="64" column="17" lean-forward="false" selection-start-line="64" selection-start-column="17" selection-end-line="64" selection-end-column="17" />
-          <folding>
-            <element signature="e#0#41#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$USER_HOME$/Anaconda3/Lib/site-packages/sklearn/preprocessing/data.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="589">
@@ -693,33 +684,43 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/ZillowHighCardinalityDataHandler.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="838">
+          <caret line="64" column="17" lean-forward="false" selection-start-line="64" selection-start-column="17" selection-end-line="64" selection-end-column="17" />
+          <folding>
+            <element signature="e#0#41#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/ZillowHomePrediction.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="334">
-          <caret line="52" column="34" lean-forward="false" selection-start-line="52" selection-start-column="34" selection-end-line="52" selection-end-column="34" />
+        <state relative-caret-position="2374">
+          <caret line="157" column="0" lean-forward="true" selection-start-line="157" selection-start-column="0" selection-end-line="157" selection-end-column="0" />
           <folding>
             <element signature="e#351#360#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/ZillowDataRepository.py">
+    <entry file="file://$PROJECT_DIR$/ZillowHomePredictionModels.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1003">
-          <caret line="59" column="8" lean-forward="true" selection-start-line="59" selection-start-column="8" selection-end-line="59" selection-end-column="8" />
+        <state relative-caret-position="31">
+          <caret line="228" column="45" lean-forward="false" selection-start-line="228" selection-start-column="8" selection-end-line="228" selection-end-column="45" />
           <folding>
-            <element signature="e#0#19#0" expanded="true" />
+            <element signature="e#0#9#0" expanded="true" />
+            <marker date="1504717202822" expanded="true" signature="1010:1271" ph="..." />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/ZillowHomePredictionModels.py">
+    <entry file="file://$PROJECT_DIR$/ZillowDataRepository.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="3652">
-          <caret line="226" column="13" lean-forward="true" selection-start-line="226" selection-start-column="13" selection-end-line="226" selection-end-column="13" />
+        <state relative-caret-position="481">
+          <caret line="77" column="85" lean-forward="false" selection-start-line="77" selection-start-column="66" selection-end-line="77" selection-end-column="85" />
           <folding>
-            <element signature="e#0#9#0" expanded="true" />
-            <marker date="1504621470436" expanded="true" signature="999:1260" ph="..." />
+            <element signature="e#0#19#0" expanded="true" />
           </folding>
         </state>
       </provider>

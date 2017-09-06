@@ -1,4 +1,6 @@
 import os
+
+import gc
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
@@ -90,8 +92,16 @@ class ZillowHomePredictionModels:
         # logerror=log(Zestimate)−log(SalePrice)
         return np.sum([abs(y[i] - ypred[i]) for i in range(len(y))]) / len(y)
 
+    def get_date_features(self, df:pd.DataFrame):
+        df["transactiondate"] = pd.to_datetime(df["transactiondate"])
+        df["transactiondate_year"] = df["transactiondate"].dt.year
+        df["transactiondate_month"] = df["transactiondate"].dt.month
+        df['transactiondate'] = df['transactiondate'].dt.quarter
+        return df
+
     def get_ols_features(self, df:pd.DataFrame):
         ols_df = df.copy()
+        ols_df = self.get_date_features(df)
         ols_df["transactiondate"] = pd.to_datetime(ols_df["transactiondate"])
         ols_df["transactiondate_year"] = ols_df["transactiondate"].dt.year
         ols_df["transactiondate_month"] = ols_df["transactiondate"].dt.month
@@ -232,6 +242,39 @@ class ZillowHomePredictionModels:
                                                  lgb_x_test)
         pred0 = xgb_weight0 * xgb_pred + baseline_weight0 * BASELINE_PRED + lgb_weight * lgb_pred
         return pred0
+
+    def generate_all_combined_predictions_with_date(self, merged_df, x_test,
+                                                    x_test_index, x_train, y_train, scaler=None):
+        dates = ['2016-10-01', '2016-11-01', '2016-12-01', '2017-10-01', '2017-11-01', '2017-12-01']
+        columns = ['201610', '201611', '201612', '201710', '201711', '201712']
+        output = pd.DataFrame({'ParcelId': x_test_index})
+        x_train["transactiondate"] = merged_df["transactiondate"].values
+        x_train = self.get_date_features(x_train)
+        x_test_with_date = pd.DataFrame()
+
+        for i in range(len(dates)):
+            transaction_date = dates[i]
+            x_test["transactiondate"] = transaction_date
+            x_test = self.get_date_features(x_test)
+            x_test_with_date = x_test_with_date.append(x_test)
+
+        x_test = None
+        gc.collect()
+
+        pred0 = self.generate_xgb_lgb_combined_predictions(x_train, y_train, x_test_with_date)
+        ols_model = self.generate_ols_model(x_train, merged_df["transactiondate"].values, y_train)
+
+        for i in range(len(dates)):
+            transaction_date = dates[i]
+            ols_pred = self.get_ols_prediction(ols_model,
+                                               x_test_with_date[x_test_with_date["transactiondate"] == transaction_date],
+                                               transaction_date)
+            pred = OLS_WEIGHT * ols_pred + (1 - OLS_WEIGHT) * pred0
+            if not scaler is None:
+                pred = scaler.inverse_transform(pred)
+            output[columns[i]] = [float(format(x, '.4f')) for x in pred]
+
+        return output
 
     def generate_all_combined_predictions(self, merged_df, x_test, x_test_index, x_train, y_train, scaler=None):
         dates = ['2016-10-01', '2016-11-01', '2016-12-01', '2017-10-01', '2017-11-01', '2017-12-01']
