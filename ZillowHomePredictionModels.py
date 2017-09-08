@@ -29,10 +29,22 @@ XGB_WEIGHT = 0.64155
 BASELINE_WEIGHT = 0.0050#0.0056
 OLS_WEIGHT = 0.0828
 
-XGB1_WEIGHT = 0.8#0.80#0.8083#0.9013 XGB Correlation#  # Weight of first in combination of two XGB models
+XGB1_WEIGHT = 0.9013#0.8#0.80#0.8083#0.9013 XGB Correlation#  # Weight of first in combination of two XGB models
 
 BASELINE_PRED = 0.0115 # Baseline based on mean of training data, per https://www.kaggle.com/bbrandt/using-avg-for-each-landusetypeid-for-prediction
 #BASELINE_PRED = 0.0115   # Baseline based on mean of training data, per Oleg
+
+xgb_comb_params = {
+            'eta': 0.03,
+            'max_depth': 6,
+            'subsample': 0.80,
+            'objective': 'reg:linear',
+            'eval_metric': 'mae',
+            'lambda': 0.8,
+            'alpha': 0.4,
+            'silent': 1,
+            'seed': random_state
+        }
 
 xgb_params1 = {
             'eta': 0.037,
@@ -56,21 +68,7 @@ xgb_params2 = {
             'seed': random_state
         }
 
-class ZillowHomePredictionModels:
-    # This section is (I think) originally derived from SIDHARTH's script:
-    #   https://www.kaggle.com/sidharthkumar/trying-lightgbm
-    # which was forked and tuned by Yuqing Xue:
-    #   https://www.kaggle.com/yuqingxue/lightgbm-85-97
-    # and updated by Andy Harless:
-    #   https://www.kaggle.com/aharless/lightgbm-with-outliers-remaining
-    def generate_lgb_model(self, X_train, y_train):
-        drop_cols = [
-            'propertyzoningdesc', 'propertycountylandusecode',
-            'fireplacecnt', 'fireplaceflag'
-        ]
-        # X_train = X_train.drop(drop_cols, axis=1)
-        d_train = lgb.Dataset(X_train, label=y_train)
-        lgb_params = {
+lgb_params = {
             'max_bin': 10,
             'learning_rate': 0.0021,  # shrinkage_rate
             'boosting_type': 'gbdt',
@@ -86,6 +84,22 @@ class ZillowHomePredictionModels:
             'feature_fraction_seed': 2,
             'bagging_seed': 3,
         }
+
+class ZillowHomePredictionModels:
+    # This section is originally derived from SIDHARTH's script:
+    #   https://www.kaggle.com/sidharthkumar/trying-lightgbm
+    # which was forked and tuned by Yuqing Xue:
+    #   https://www.kaggle.com/yuqingxue/lightgbm-85-97
+    # and updated by Andy Harless:
+    #   https://www.kaggle.com/aharless/lightgbm-with-outliers-remaining
+    def generate_lgb_model(self, X_train, y_train):
+        drop_cols = [
+            'propertyzoningdesc', 'propertycountylandusecode',
+            'fireplacecnt', 'fireplaceflag'
+        ]
+        # X_train = X_train.drop(drop_cols, axis=1)
+        d_train = lgb.Dataset(X_train, label=y_train)
+
 
         clf = lgb.train(lgb_params, d_train, 430)
         return clf
@@ -160,12 +174,13 @@ class ZillowHomePredictionModels:
         oof_test[:] = oof_test_skf.mean(axis=0)
         return oof_train.reshape(-1, 1), oof_test.reshape(-1, 1)
 
+    # https://www.kaggle.com/mubashir44/simple-ensemble-model-stacking
     def get_oof_for_xgboost(self, x_train, y_train, x_test, xgb_params, num_boost_rounds):
         # Some useful parameters which will come in handy later on
         ntrain = x_train.shape[0]
         ntest = x_test.shape[0]
         SEED = 42  # for reproducibility
-        NFOLDS = 4  # set folds for out-of-fold prediction
+        NFOLDS = 3  # set folds for out-of-fold prediction
         kf = KFold(n_splits=NFOLDS, random_state=random_state)
         xgb_params['base_score'] = y_train.mean()
 
@@ -184,6 +199,33 @@ class ZillowHomePredictionModels:
 
             oof_train[test_index] = clf.predict(xgb.DMatrix(x_te))
             oof_test_skf[i, :] = clf.predict(xgb.DMatrix(x_test))
+
+        oof_test[:] = oof_test_skf.mean(axis=0)
+        return oof_train.reshape(-1, 1), oof_test.reshape(-1, 1)
+
+    def get_oof_for_lgboost(self, x_train, y_train, x_test, num_boost_rounds):
+        # Some useful parameters which will come in handy later on
+        ntrain = x_train.shape[0]
+        ntest = x_test.shape[0]
+        SEED = 42  # for reproducibility
+        NFOLDS = 3  # set folds for out-of-fold prediction
+        kf = KFold(n_splits=NFOLDS, random_state=random_state)
+
+        oof_train = np.zeros((ntrain,))
+        oof_test = np.zeros((ntest,))
+        oof_test_skf = np.empty((NFOLDS, ntest))
+        x_train = x_train.values
+        x_test = x_test.values
+
+        for i, (train_index, test_index) in enumerate(kf.split(x_train)):
+            x_tr = x_train[train_index]
+            y_tr = y_train[train_index]
+            x_te = x_train[test_index]
+
+            clf = lgb.train(lgb_params, lgb.Dataset(x_tr, label=y_tr), num_boost_rounds)
+
+            oof_train[test_index] = clf.predict(x_te)
+            oof_test_skf[i, :] = clf.predict(x_test)
 
         oof_test[:] = oof_test_skf.mean(axis=0)
         return oof_train.reshape(-1, 1), oof_test.reshape(-1, 1)
@@ -209,14 +251,16 @@ class ZillowHomePredictionModels:
         xgb_train_pred1, xgb_test_pred1 = self.get_oof_for_xgboost(x_train, y_train, x_test, xgb_params1, 250)
         xgb_train_pred2, xgb_test_pred2 = self.get_oof_for_xgboost(x_train, y_train, x_test, xgb_params2, 150)
 
-        # new_x_train = pd.DataFrame({"model1": xgb_train_pred1.flatten(),
-        #                             "model2": xgb_train_pred2.flatten()})
-        # new_x_test = pd.DataFrame({"model1": xgb_test_pred1.flatten(),
-        #                            "model2": xgb_test_pred2.flatten()})
-        #combined_xgb_model = self.generate_xgb_model(new_x_train, y_train, xgb_params1, 100)
-        combined_xgb_pred = XGB1_WEIGHT*xgb_test_pred1.flatten() + (1-XGB1_WEIGHT)*xgb_test_pred2.flatten()
+        new_x_train = pd.DataFrame({"model1": xgb_train_pred1.flatten(),
+                                    "model2": xgb_train_pred2.flatten()})
+        new_x_test = pd.DataFrame({"model1": xgb_test_pred1.flatten(),
+                                   "model2": xgb_test_pred2.flatten()})
+        #combined_xgb_model = self.generate_xgb_model(new_x_train, y_train, xgb_comb_params, 100)
+        #combined_xgb_pred = XGB1_WEIGHT*xgb_test_pred1.flatten() + (1-XGB1_WEIGHT)*xgb_test_pred2.flatten()
         #new_d_test = xgb.DMatrix(new_x_test)
         #combined_xgb_pred = self.__get_model_prediction__(combined_xgb_model, new_d_test)
+        combined_xgb_train, combined_xgb_pred = self.get_oof_for_xgboost(new_x_train, y_train,
+                                                                         new_x_test, xgb_comb_params, 100)
 
         #sel = PLSRegression(n_components=1,)
         #pca_x_train = sel.fit_transform(new_x_train, y_train)
@@ -226,13 +270,13 @@ class ZillowHomePredictionModels:
         #reg.fit(new_x_train, y_train)
         #combined_xgb_pred = self.__get_model_prediction__(reg, new_x_test)
 
-        return combined_xgb_pred
+        return combined_xgb_train, combined_xgb_pred
 
     def generate_xgb_lgb_combined_predictions(self, x_train, y_train, x_test):
         lgb_weight = (1 - XGB_WEIGHT - BASELINE_WEIGHT) / (1 - OLS_WEIGHT)
         xgb_weight0 = XGB_WEIGHT / (1 - OLS_WEIGHT)
         baseline_weight0 = BASELINE_WEIGHT / (1 - OLS_WEIGHT)
-        xgb_pred = self.generate_combined_xgb_pred(x_train, y_train, x_test)
+        xgb_train, xgb_pred = self.generate_combined_xgb_pred(x_train, y_train, x_test)
 
         lgb_drop_cols = [
             'propertyzoningdesc', 'propertycountylandusecode',
@@ -240,10 +284,17 @@ class ZillowHomePredictionModels:
         ]
         lgb_x_train = x_train.drop(lgb_drop_cols, axis=1)
         lgb_x_test = x_test.drop(lgb_drop_cols, axis=1)
-        lgb_pred = self.__get_model_prediction__(self.generate_lgb_model(lgb_x_train, y_train),
-                                                 lgb_x_test)
-        pred0 = xgb_weight0 * xgb_pred + baseline_weight0 * BASELINE_PRED + lgb_weight * lgb_pred
-        return pred0
+        lgb_train, lgb_test = self.get_oof_for_lgboost(lgb_x_train, y_train, lgb_x_test, 430)
+        #lgb_pred = self.__get_model_prediction__(self.generate_lgb_model(lgb_x_train, y_train),
+        #                                         lgb_x_test)
+        #pred0 = xgb_weight0 * xgb_pred + baseline_weight0 * BASELINE_PRED + lgb_weight * lgb_pred
+        new_x_train = pd.DataFrame({"model1": xgb_train.flatten(),
+                                    "model2": lgb_train.flatten()})
+        new_x_test = pd.DataFrame({"model1": xgb_pred.flatten(),
+                                   "model2": lgb_test.flatten()})
+        lgb_xgb_train_pred, lgb_xgb_test_pred = self.get_oof_for_xgboost(new_x_train, y_train,
+                                                                         new_x_test, xgb_comb_params, 100)
+        return lgb_xgb_test_pred.flatten()
 
     def generate_all_combined_predictions_with_date(self, merged_df, x_test,
                                                     x_test_index, x_train, y_train, scaler=None):
