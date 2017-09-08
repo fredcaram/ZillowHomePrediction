@@ -35,9 +35,9 @@ BASELINE_PRED = 0.0115 # Baseline based on mean of training data, per https://ww
 #BASELINE_PRED = 0.0115   # Baseline based on mean of training data, per Oleg
 
 xgb_params1 = {
-            'eta': 0.0371,
+            'eta': 0.037,
             'max_depth': 5,
-            'subsample': 0.81,
+            'subsample': 0.80,
             'objective': 'reg:linear',
             'eval_metric': 'mae',
             'lambda': 0.8,
@@ -47,9 +47,9 @@ xgb_params1 = {
         }
 
 xgb_params2 = {
-            'eta': 0.03328,
+            'eta': 0.033,
             'max_depth': 6,
-            'subsample': 0.79,
+            'subsample': 0.8,
             'objective': 'reg:linear',
             'eval_metric': 'mae',
             'silent': 1,
@@ -165,7 +165,7 @@ class ZillowHomePredictionModels:
         ntrain = x_train.shape[0]
         ntest = x_test.shape[0]
         SEED = 42  # for reproducibility
-        NFOLDS = 10  # set folds for out-of-fold prediction
+        NFOLDS = 4  # set folds for out-of-fold prediction
         kf = KFold(n_splits=NFOLDS, random_state=random_state)
         xgb_params['base_score'] = y_train.mean()
 
