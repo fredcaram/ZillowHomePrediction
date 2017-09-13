@@ -35,7 +35,7 @@ BASELINE_PRED = 0.0115 # Baseline based on mean of training data, per https://ww
 #BASELINE_PRED = 0.0115   # Baseline based on mean of training data, per Oleg
 
 xgb_ols_params = {
-            'eta': 0.03,
+            'eta': 0.029,
             'max_depth': 5,
             'subsample': 0.80,
             'objective': 'reg:linear',
@@ -116,6 +116,9 @@ class ZillowHomePredictionModels:
     #   https://www.kaggle.com/yuqingxue/lightgbm-85-97
     # and updated by Andy Harless:
     #   https://www.kaggle.com/aharless/lightgbm-with-outliers-remaining
+    def __init__(self):
+        self.xgb_comb_params = xgb_comb_params
+
     def generate_lgb_model(self, X_train, y_train):
         drop_cols = [
             'propertyzoningdesc', 'propertycountylandusecode',
@@ -308,7 +311,7 @@ class ZillowHomePredictionModels:
         # combined_xgb_train = self.__get_model_prediction__(combined_xgb_model, xgb.DMatrix(new_x_train))
         # combined_xgb_pred = self.__get_model_prediction__(combined_xgb_model, xgb.DMatrix(new_x_test))
         combined_xgb_train, combined_xgb_pred = self.get_oof_for_xgboost(new_x_train, y_train,
-                                                                         new_x_test, xgb_comb_params, 200)
+                                                                         new_x_test, self.xgb_comb_params, 200)
 
         #sel = PLSRegression(n_components=1,)
         #pca_x_train = sel.fit_transform(new_x_train, y_train)

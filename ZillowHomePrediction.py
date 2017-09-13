@@ -5,6 +5,7 @@
 #https://www.kaggle.com/davidfumo/boosted-trees-lb-0-0643707/code
 #https://www.kaggle.com/aharless/xgboost-lightgbm-and-ols/output
 import os
+import time
 from datetime import datetime
 
 import numpy as np
@@ -12,6 +13,7 @@ import pandas as pd
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import KFold
+from skopt import gp_minimize
 
 import ZillowDataDecomposition
 import ZillowDataRepository
@@ -129,7 +131,7 @@ class ZillowHomePrediction():
         print(mean_squared_error(y_test, pred))
         print(mean_absolute_error(y_test, pred))
 
-    def cv_test_combined_models(self):
+    def cv_test_combined_models(self, xgb_comb_params=None):
         data = self.data_repo.get_merged_data()
         x_train, y_train = self.__get_train_data_for_submission__(data)
 
@@ -139,6 +141,9 @@ class ZillowHomePrediction():
 
         columns = ['201610', '201611', '201612', '201710', '201711', '201712']
         maes = []
+
+        if(not xgb_comb_params is None):
+            self.zillow_models.xgb_comb_params = xgb_comb_params
 
         for i, (train_index, test_index) in enumerate(kf.split(x_train, y_train)):
             df = data.iloc[train_index, :]
@@ -155,6 +160,28 @@ class ZillowHomePrediction():
 
         avg_mae = np.average(maes)
         print('CV AVG MAE:{}'.format(avg_mae))
+        return avg_mae
+
+    def cv_test_combined_models_with_xgb_comb_params(self, params):
+        eta, max_depth, subsample, l2lambda, l1alpha = params
+        xgb_comb_params = {
+            'eta': eta,
+            'max_depth': max_depth,
+            'subsample': subsample,
+            'objective': 'reg:linear',
+            'eval_metric': 'mae',
+            'lambda': l2lambda,
+            'alpha': l1alpha,
+            'silent': 1,
+            'seed': 42
+        }
+        return self.cv_test_combined_models(xgb_comb_params)
+
+    def optimize_xgb_comb_params(self):
+        res = gp_minimize(self.cv_test_combined_models, [(0.15, 0.35), (3,6), (0.6, 0.9), (0.5, 1), (0, 0.5)], x0=[0.3, 5, 0.8, 0.8, 0.4])
+        print(res.x)
+        print(res.fun)
+        print("")
 
     def test_with_xgboost(self, xgb_params=xgb_params, boost_rounds=150):
         data = self.data_repo.get_merged_data()
@@ -168,11 +195,14 @@ class ZillowHomePrediction():
         print(mean_squared_error(y_test, pred))
         print(mean_absolute_error(y_test, pred))
 
-
+start = time.time()
 home_pred = ZillowHomePrediction()
 #home_pred.cv_test_combined_models()
 #home_pred.test_with_xgboost(xgb_params1, 250)
 #home_pred.test_with_xgboost(xgb_params2, 150)
 #home_pred.generate_combined_model_with_decomp_submission()
+home_pred.optimize_xgb_comb_params()
 #home_pred.generate_combined_model_submission()
-home_pred.generate_combined_model_submission()
+end = time.time()
+print("Spent time")
+print(end - start)
