@@ -26,7 +26,7 @@ import xgboost as xgb
 
 # Global Parameters
 XGB_WEIGHT = 0.64155
-BASELINE_WEIGHT = 0.0056#0.0056
+BASELINE_WEIGHT = 0.0050#0.0056
 OLS_WEIGHT = 0.0828
 
 XGB1_WEIGHT = 0.9013#0.8#0.80#0.8083#0.9013 XGB Correlation#  # Weight of first in combination of two XGB models
@@ -36,23 +36,23 @@ BASELINE_PRED = 0.0115 # Baseline based on mean of training data, per https://ww
 
 xgb_ols_params = {
             'eta': 0.03,
-            'max_depth': 6,
+            'max_depth': 5,
             'subsample': 0.80,
             'objective': 'reg:linear',
             'eval_metric': 'mae',
-            # 'lambda': 0.8,
-            # 'alpha': 0.4,
+            'lambda': 1,
+            'alpha': 0.1,
             'silent': 1,
             'seed': random_state
         }
 
 xgb_comb_params = {
             'eta': 0.03,
-            'max_depth': 6,
+            'max_depth': 5,
             'subsample': 0.80,
             'objective': 'reg:linear',
             'eval_metric': 'mae',
-            'lambda': 0.8,
+            'lambda': 0.7,
             'alpha': 0.4,
             'silent': 1,
             'seed': random_state
@@ -60,12 +60,12 @@ xgb_comb_params = {
 
 xgb_lgb_params = {
             'eta': 0.03,
-            'max_depth': 6,
+            'max_depth': 5,
             'subsample': 0.80,
             'objective': 'reg:linear',
             'eval_metric': 'mae',
-            # 'lambda': 0.8,
-            # 'alpha': 0.4,
+            'lambda': 1,
+            'alpha': 0,
             'silent': 1,
             'seed': random_state
         }
@@ -244,7 +244,7 @@ class ZillowHomePredictionModels:
         ntrain = x_train.shape[0]
         ntest = x_test.shape[0]
         SEED = 42  # for reproducibility
-        NFOLDS = 2  # set folds for out-of-fold prediction
+        NFOLDS = 5  # set folds for out-of-fold prediction
         kf = KFold(n_splits=NFOLDS, random_state=random_state)
 
         oof_train = np.zeros((ntrain,))
@@ -279,19 +279,20 @@ class ZillowHomePredictionModels:
         #x_train.drop('y', axis=1, inplace=True)
         #x_test.drop('y', axis=1, inplace=True)
 
-        dtest = xgb.DMatrix(x_test)
+        # dtest = xgb.DMatrix(x_test)
 
         print("Train XGB Model 1:")
-        model1 = self.generate_xgb_model(x_train, y_train, xgb_params1, 250)
-        xgb_train_pred1 = self.__get_model_prediction__(model1, xgb.DMatrix(x_train))
-        xgb_test_pred1 = self.__get_model_prediction__(model1, dtest)
+        xgb_train_pred1, xgb_test_pred1 = self.get_oof_for_xgboost(x_train, y_train, x_test, xgb_params1, 250)
+        # model1 = self.generate_xgb_model(x_train, y_train, xgb_params1, 250)
+        # xgb_train_pred1 = self.__get_model_prediction__(model1, xgb.DMatrix(x_train))
+        # xgb_test_pred1 = self.__get_model_prediction__(model1, dtest)
 
         print("Train XGB Model 2:")
-        model2 = self.generate_xgb_model(x_train, y_train, xgb_params2, 150)
-        xgb_train_pred2 = self.__get_model_prediction__(model2, xgb.DMatrix(x_train))
-        xgb_test_pred2 = self.__get_model_prediction__(model2, dtest)
-        #xgb_train_pred1, xgb_test_pred1 = self.get_oof_for_xgboost(x_train, y_train, x_test, xgb_params1, 250)
-        #xgb_train_pred2, xgb_test_pred2 = self.get_oof_for_xgboost(x_train, y_train, x_test, xgb_params2, 150)
+        xgb_train_pred2, xgb_test_pred2 = self.get_oof_for_xgboost(x_train, y_train, x_test, xgb_params2, 150)
+        # model2 = self.generate_xgb_model(x_train, y_train, xgb_params2, 150)
+        # xgb_train_pred2 = self.__get_model_prediction__(model2, xgb.DMatrix(x_train))
+        # xgb_test_pred2 = self.__get_model_prediction__(model2, dtest)
+
 
         new_x_train = pd.DataFrame({"model1": xgb_train_pred1.flatten(),
                                     "model2": xgb_train_pred2.flatten()})
@@ -331,22 +332,26 @@ class ZillowHomePredictionModels:
         ]
         lgb_x_train = x_train.drop(lgb_drop_cols, axis=1)
         lgb_x_test = x_test.drop(lgb_drop_cols, axis=1)
-        # lgb_train, lgb_test = self.get_oof_for_lgboost(lgb_x_train, y_train, lgb_x_test, 430)
+
         print("Train LGB Model:")
-        lgb_model = self.generate_lgb_model(lgb_x_train, y_train)
-        lgb_train = self.__get_model_prediction__(lgb_model, lgb_x_train)
-        lgb_test = self.__get_model_prediction__(lgb_model, lgb_x_test)
+        lgb_train, lgb_test = self.get_oof_for_lgboost(lgb_x_train, y_train, lgb_x_test, 430)
+
+        # lgb_model = self.generate_lgb_model(lgb_x_train, y_train)
+        # lgb_train = self.__get_model_prediction__(lgb_model, lgb_x_train)
+        # lgb_test = self.__get_model_prediction__(lgb_model, lgb_x_test)
         #pred0 = xgb_weight0 * xgb_pred + baseline_weight0 * BASELINE_PRED + lgb_weight * lgb_pred
         new_x_train = pd.DataFrame({"model1": xgb_train.flatten(),
                                     "model2": lgb_train.flatten()})
         new_x_test = pd.DataFrame({"model1": xgb_pred.flatten(),
                                    "model2": lgb_test.flatten()})
-        # lgb_xgb_train_pred, lgb_xgb_test_pred = self.get_oof_for_xgboost(new_x_train, y_train,
-        #                                                                  new_x_test, xgb_lgb_params, 250)
+
         print("Train XGB-LGB Model:")
-        lgb_xgb_model = self.generate_xgb_model(new_x_train, y_train, xgb_lgb_params, 150)
-        lgb_xgb_train_pred = self.__get_model_prediction__(lgb_xgb_model, xgb.DMatrix(new_x_train))
-        lgb_xgb_test_pred = self.__get_model_prediction__(lgb_xgb_model, xgb.DMatrix(new_x_test))
+        lgb_xgb_train_pred, lgb_xgb_test_pred = self.get_oof_for_xgboost(new_x_train, y_train,
+                                                                         new_x_test, xgb_lgb_params, 180)
+
+        # lgb_xgb_model = self.generate_xgb_model(new_x_train, y_train, xgb_lgb_params, 150)
+        # lgb_xgb_train_pred = self.__get_model_prediction__(lgb_xgb_model, xgb.DMatrix(new_x_train))
+        # lgb_xgb_test_pred = self.__get_model_prediction__(lgb_xgb_model, xgb.DMatrix(new_x_test))
 
         return lgb_xgb_train_pred.flatten(), lgb_xgb_test_pred.flatten()
 
@@ -390,34 +395,35 @@ class ZillowHomePredictionModels:
         output = pd.DataFrame({'ParcelId': x_test_index})
         train_xgb_lgb, pred_xgb_lgb = self.generate_xgb_lgb_combined_predictions(x_train, y_train, x_test)
         print("Train OLS Model:")
-        ols_model = self.generate_ols_model(x_train, merged_df["transactiondate"].values, y_train)
+        # ols_model = self.generate_ols_model(x_train, merged_df["transactiondate"].values, y_train)
         ols_x_train = self.get_ols_train(x_train, merged_df["transactiondate"].values)
-        ols_train = self.__get_model_prediction__(ols_model, ols_x_train)
-        #ols_clf = self.create_ols_model()
+        # ols_train = self.__get_model_prediction__(ols_model, ols_x_train)
+        ols_clf = self.create_ols_model()
         for i in range(len(dates)):
             transaction_date = dates[i]
             ols_x_test = self.get_ols_test(x_test, transaction_date)
-            #ols_train, ols_pred = self.get_oof(ols_clf, ols_x_train, y_train, ols_x_test)
-            ols_pred = self.__get_model_prediction__(ols_model, ols_x_test)
+            ols_train, ols_pred = self.get_oof(ols_clf, ols_x_train, y_train, ols_x_test)
+            # ols_pred = self.__get_model_prediction__(ols_model, ols_x_test)
             # pred = OLS_WEIGHT * ols_pred + (1 - OLS_WEIGHT) * pred0
             new_x_train = pd.DataFrame({"model1": train_xgb_lgb.flatten(),
                                         "model2": ols_train.flatten()})
             new_x_test = pd.DataFrame({"model1": pred_xgb_lgb.flatten(),
                                        "model2": ols_pred.flatten()})
 
-            # xgb_ols_train_pred, xgb_ols_test_pred = self.get_oof_for_xgboost(new_x_train, y_train,
-            #                                                                  new_x_test, xgb_ols_params, 250)
             print("Train Combined Models For {}:".format(transaction_date))
-            xgb_ols_model = self.generate_xgb_model(new_x_train, y_train, xgb_lgb_params, 150)
-            xgb_ols_train_pred = self.__get_model_prediction__(xgb_ols_model, xgb.DMatrix(new_x_train))
-            xgb_ols_test_pred = self.__get_model_prediction__(xgb_ols_model, xgb.DMatrix(new_x_test))
+            xgb_ols_train_pred, xgb_ols_test_pred = self.get_oof_for_xgboost(new_x_train, y_train,
+                                                                             new_x_test, xgb_ols_params, 70)
+
+            # xgb_ols_model = self.generate_xgb_model(new_x_train, y_train, xgb_lgb_params, 150)
+            # xgb_ols_train_pred = self.__get_model_prediction__(xgb_ols_model, xgb.DMatrix(new_x_train))
+            # xgb_ols_test_pred = self.__get_model_prediction__(xgb_ols_model, xgb.DMatrix(new_x_test))
 
             xgb_ols_test_pred = xgb_ols_test_pred.flatten()
 
             if not scaler is None:
                 xgb_ols_test_pred = scaler.inverse_transform(xgb_ols_test_pred)
 
-            # xgb_ols_test_pred = ((1 - BASELINE_WEIGHT) * xgb_ols_test_pred) + (BASELINE_WEIGHT * BASELINE_PRED)
+            xgb_ols_test_pred = ((1 - BASELINE_WEIGHT) * xgb_ols_test_pred) + (BASELINE_WEIGHT * BASELINE_PRED)
             output[columns[i]] = [float(format(x, '.4f')) for x in xgb_ols_test_pred]
 
         return output
