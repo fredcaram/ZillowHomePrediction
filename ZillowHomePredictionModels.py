@@ -8,6 +8,7 @@ from sklearn.model_selection import KFold
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.cross_decomposition import PLSRegression
+from sklearn.svm import LinearSVR
 import random
 
 
@@ -35,13 +36,26 @@ BASELINE_PRED = 0.0115 # Baseline based on mean of training data, per https://ww
 #BASELINE_PRED = 0.0115   # Baseline based on mean of training data, per Oleg
 
 xgb_ols_params = {
-            'eta': 0.029,
+            'booster': 'dart',
+            'eta': 0.0245,
+            'max_depth': 5,
+            'subsample': 0.8,
+            'objective': 'reg:linear',
+            'eval_metric': 'mae',
+            'lambda': 1,
+            'alpha': 0.1,
+            'silent': 1,
+            'seed': random_state
+        }
+
+xgb_lgb_params = {
+            'eta': 0.03,
             'max_depth': 5,
             'subsample': 0.80,
             'objective': 'reg:linear',
             'eval_metric': 'mae',
             'lambda': 1,
-            'alpha': 0.1,
+            'alpha': 0,
             'silent': 1,
             'seed': random_state
         }
@@ -58,17 +72,7 @@ xgb_comb_params = {
             'seed': random_state
         }
 
-xgb_lgb_params = {
-            'eta': 0.03,
-            'max_depth': 5,
-            'subsample': 0.80,
-            'objective': 'reg:linear',
-            'eval_metric': 'mae',
-            'lambda': 1,
-            'alpha': 0,
-            'silent': 1,
-            'seed': random_state
-        }
+
 
 xgb_params1 = {
             'eta': 0.037,
@@ -118,6 +122,10 @@ class ZillowHomePredictionModels:
     #   https://www.kaggle.com/aharless/lightgbm-with-outliers-remaining
     def __init__(self):
         self.xgb_comb_params = xgb_comb_params
+        self.xgb_ols_params = xgb_ols_params
+        self.xgb_lgb_params = xgb_lgb_params
+        self.xgb_params1 = xgb_params1
+        self.xgb_params2 = xgb_params2
 
     def generate_lgb_model(self, X_train, y_train):
         drop_cols = [
@@ -169,7 +177,8 @@ class ZillowHomePredictionModels:
     def create_ols_model(self):
         np.random.seed(17)
         random.seed(17)
-        reg = LinearRegression(n_jobs=-1)
+        #reg = LinearRegression(n_jobs=-1)
+        reg = LinearSVR()
         return reg
 
     def get_ols_train(self, x_train, transaction_date):
@@ -193,7 +202,7 @@ class ZillowHomePredictionModels:
         # Some useful parameters which will come in handy later on
         ntrain = x_train.shape[0]
         ntest = x_test.shape[0]
-        NFOLDS = 5  # set folds for out-of-fold prediction
+        NFOLDS = 3  # set folds for out-of-fold prediction
         kf = KFold(n_splits=NFOLDS, random_state=random_state)
 
         oof_train = np.zeros((ntrain,))
@@ -247,7 +256,7 @@ class ZillowHomePredictionModels:
         ntrain = x_train.shape[0]
         ntest = x_test.shape[0]
         SEED = 42  # for reproducibility
-        NFOLDS = 5  # set folds for out-of-fold prediction
+        NFOLDS = 3  # set folds for out-of-fold prediction
         kf = KFold(n_splits=NFOLDS, random_state=random_state)
 
         oof_train = np.zeros((ntrain,))
@@ -285,13 +294,13 @@ class ZillowHomePredictionModels:
         # dtest = xgb.DMatrix(x_test)
 
         print("Train XGB Model 1:")
-        xgb_train_pred1, xgb_test_pred1 = self.get_oof_for_xgboost(x_train, y_train, x_test, xgb_params1, 250)
+        xgb_train_pred1, xgb_test_pred1 = self.get_oof_for_xgboost(x_train, y_train, x_test, self.xgb_params1, 250)
         # model1 = self.generate_xgb_model(x_train, y_train, xgb_params1, 250)
         # xgb_train_pred1 = self.__get_model_prediction__(model1, xgb.DMatrix(x_train))
         # xgb_test_pred1 = self.__get_model_prediction__(model1, dtest)
 
         print("Train XGB Model 2:")
-        xgb_train_pred2, xgb_test_pred2 = self.get_oof_for_xgboost(x_train, y_train, x_test, xgb_params2, 150)
+        xgb_train_pred2, xgb_test_pred2 = self.get_oof_for_xgboost(x_train, y_train, x_test, self.xgb_params2, 150)
         # model2 = self.generate_xgb_model(x_train, y_train, xgb_params2, 150)
         # xgb_train_pred2 = self.__get_model_prediction__(model2, xgb.DMatrix(x_train))
         # xgb_test_pred2 = self.__get_model_prediction__(model2, dtest)
@@ -350,7 +359,7 @@ class ZillowHomePredictionModels:
 
         print("Train XGB-LGB Model:")
         lgb_xgb_train_pred, lgb_xgb_test_pred = self.get_oof_for_xgboost(new_x_train, y_train,
-                                                                         new_x_test, xgb_lgb_params, 180)
+                                                                         new_x_test, self.xgb_lgb_params, 180)
 
         # lgb_xgb_model = self.generate_xgb_model(new_x_train, y_train, xgb_lgb_params, 150)
         # lgb_xgb_train_pred = self.__get_model_prediction__(lgb_xgb_model, xgb.DMatrix(new_x_train))
@@ -415,7 +424,7 @@ class ZillowHomePredictionModels:
 
             print("Train Combined Models For {}:".format(transaction_date))
             xgb_ols_train_pred, xgb_ols_test_pred = self.get_oof_for_xgboost(new_x_train, y_train,
-                                                                             new_x_test, xgb_ols_params, 70)
+                                                                             new_x_test, self.xgb_ols_params, 70)
 
             # xgb_ols_model = self.generate_xgb_model(new_x_train, y_train, xgb_lgb_params, 150)
             # xgb_ols_train_pred = self.__get_model_prediction__(xgb_ols_model, xgb.DMatrix(new_x_train))
