@@ -13,11 +13,12 @@ import pandas as pd
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import KFold
-from skopt import gp_minimize, dump
+from skopt import forest_minimize, dump
+from pyswarm import pso
 
 import ZillowDataDecomposition
 import ZillowDataRepository
-from ZillowHomePredictionModels import ZillowHomePredictionModels, xgb_params1, xgb_params2
+from ZillowHomePredictionModels import ZillowHomePredictionModels
 
 # xgboost fix
 mingw_path = 'C:\\Program Files\\mingw-w64\\x86_64-7.1.0-posix-seh-rt_v5-rev2\\mingw64\\bin'
@@ -178,52 +179,90 @@ class ZillowHomePrediction():
 
         return self.cv_test_combined_models()
 
-    def cv_test_all_xgb_params(self, params):
-        ols_eta, ols_max_depth, ols_subsample, ols_lambda, ols_alpha,\
-            xgb_comb_eta, xgb_comb_max_depth, xgb_comb_subsample, xgb_comb_lambda, xgb_comb_alpha, \
-            xgb_lgb_eta, xgb_lgb_max_depth, xgb_lgb_subsample, xgb_lgb_lambda, xgb_lgb_alpha,\
-            xgb1_eta, xgb1_max_depth, xgb1_subsample, xgb1_lambda, xgb1_alpha, \
-            xgb2_eta, xgb2_max_depth, xgb2_subsample, xgb2_lambda, xgb2_alpha = params
-
-        self.zillow_models.xgb_ols_params["eta"] = ols_eta
-        self.zillow_models.xgb_ols_params["max_depth"] = ols_max_depth
-        self.zillow_models.xgb_ols_params["subsample"] = ols_subsample
-        self.zillow_models.xgb_ols_params["lambda"] = ols_lambda
-        self.zillow_models.xgb_ols_params["alpha"] = ols_alpha
-
-        self.zillow_models.xgb_comb_params["eta"] = xgb_comb_eta
-        self.zillow_models.xgb_comb_params["max_depth"] = xgb_comb_max_depth
-        self.zillow_models.xgb_comb_params["subsample"] = xgb_comb_subsample
-        self.zillow_models.xgb_comb_params["lambda"] = xgb_comb_lambda
-        self.zillow_models.xgb_comb_params["alpha"] = xgb_comb_alpha
-
-        self.zillow_models.xgb_lgb_params["eta"] = xgb_lgb_eta
-        self.zillow_models.xgb_lgb_params["max_depth"] = xgb_lgb_max_depth
-        self.zillow_models.xgb_lgb_params["subsample"] = xgb_lgb_subsample
-        self.zillow_models.xgb_lgb_params["lambda"] = xgb_lgb_lambda
-        self.zillow_models.xgb_lgb_params["alpha"] = xgb_lgb_alpha
+    def cv_test_xgb_params(self, params):
+        xgb1_eta, xgb1_max_depth, xgb1_subsample, xgb1_lambda, xgb1_alpha, \
+        xgb2_eta, xgb2_max_depth, xgb2_subsample, xgb2_lambda, xgb2_alpha = params
 
         self.zillow_models.xgb_params1["eta"] = xgb1_eta
-        self.zillow_models.xgb_params1["max_depth"] = xgb1_max_depth
+        self.zillow_models.xgb_params1["max_depth"] = int(xgb1_max_depth)
         self.zillow_models.xgb_params1["subsample"] = xgb1_subsample
         self.zillow_models.xgb_params1["lambda"] = xgb1_lambda
         self.zillow_models.xgb_params1["alpha"] = xgb1_alpha
 
         self.zillow_models.xgb_params2["eta"] = xgb2_eta
-        self.zillow_models.xgb_params2["max_depth"] = xgb2_max_depth
+        self.zillow_models.xgb_params2["max_depth"] = int(xgb2_max_depth)
         self.zillow_models.xgb_params2["subsample"] = xgb2_subsample
         self.zillow_models.xgb_params2["lambda"] = xgb2_lambda
         self.zillow_models.xgb_params2["alpha"] = xgb2_alpha
 
         return self.cv_test_combined_models()
 
+    def cv_test_comb_xgb_params(self, params):
+        ols_eta, ols_max_depth, ols_subsample, ols_lambda, ols_alpha,\
+            xgb_comb_eta, xgb_comb_max_depth, xgb_comb_subsample, xgb_comb_lambda, xgb_comb_alpha, \
+            xgb_lgb_eta, xgb_lgb_max_depth, xgb_lgb_subsample, xgb_lgb_lambda, xgb_lgb_alpha = params
+            # xgb1_eta, xgb1_max_depth, xgb1_subsample, xgb1_lambda, xgb1_alpha, \
+            # xgb2_eta, xgb2_max_depth, xgb2_subsample, xgb2_lambda, xgb2_alpha\
+
+
+        self.zillow_models.xgb_ols_params["eta"] = ols_eta
+        self.zillow_models.xgb_ols_params["max_depth"] = int(ols_max_depth)
+        self.zillow_models.xgb_ols_params["subsample"] = ols_subsample
+        self.zillow_models.xgb_ols_params["lambda"] = ols_lambda
+        self.zillow_models.xgb_ols_params["alpha"] = ols_alpha
+
+        self.zillow_models.xgb_comb_params["eta"] = xgb_comb_eta
+        self.zillow_models.xgb_comb_params["max_depth"] = int(xgb_comb_max_depth)
+        self.zillow_models.xgb_comb_params["subsample"] = xgb_comb_subsample
+        self.zillow_models.xgb_comb_params["lambda"] = xgb_comb_lambda
+        self.zillow_models.xgb_comb_params["alpha"] = xgb_comb_alpha
+
+        self.zillow_models.xgb_lgb_params["eta"] = xgb_lgb_eta
+        self.zillow_models.xgb_lgb_params["max_depth"] = int(xgb_lgb_max_depth)
+        self.zillow_models.xgb_lgb_params["subsample"] = xgb_lgb_subsample
+        self.zillow_models.xgb_lgb_params["lambda"] = xgb_lgb_lambda
+        self.zillow_models.xgb_lgb_params["alpha"] = xgb_lgb_alpha
+
+        # self.zillow_models.xgb_params1["eta"] = xgb1_eta
+        # self.zillow_models.xgb_params1["max_depth"] = xgb1_max_depth
+        # self.zillow_models.xgb_params1["subsample"] = xgb1_subsample
+        # self.zillow_models.xgb_params1["lambda"] = xgb1_lambda
+        # self.zillow_models.xgb_params1["alpha"] = xgb1_alpha
+        #
+        # self.zillow_models.xgb_params2["eta"] = xgb2_eta
+        # self.zillow_models.xgb_params2["max_depth"] = xgb2_max_depth
+        # self.zillow_models.xgb_params2["subsample"] = xgb2_subsample
+        # self.zillow_models.xgb_params2["lambda"] = xgb2_lambda
+        # self.zillow_models.xgb_params2["alpha"] = xgb2_alpha
+
+        return self.cv_test_combined_models()
+    
+    def optimize_with_swarm(self):
+        lb = np.array([0.015, 3, 0.6, 0.5, 0, 0.015, 3, 0.6, 0.5, 0, 0.015, 3, 0.6, 0.5, 0.0])
+        ub = np.array([0.035, 8, 0.9, 1, 0.5, 0.035, 8, 0.9, 1, 0.5, 0.035, 8, 0.9, 1.0, 0.5])
+        xopt, fopt = pso(self.cv_test_comb_xgb_params, lb, ub, swarmsize=20, maxiter=7)
+        #dump(res, "xgb_all_opt.gz")
+        print(xopt)
+        print(fopt)
+        print("")
+
+    def optimize_xgb_with_swarm(self):
+        lb = np.array([0.015, 3, 0.6, 0.5, 0, 0.015, 3, 0.6, 0.5, 0])
+        ub = np.array([0.035, 8, 0.9, 1, 0.5, 0.035, 8, 0.9, 1, 0.5])
+        xopt, fopt = pso(self.cv_test_xgb_params, lb, ub, swarmsize=10, maxiter=5)
+        #dump(res, "xgb_all_opt.gz")
+        print(xopt)
+        print(fopt)
+        print("")
+
     def optimize_all_xgb_params(self):
-        res = gp_minimize(self.cv_test_all_xgb_params,
-                          [(0.015, 0.035), (3, 6), (0.6, 0.9), (0.5, 1), (0, 0.5),
-                           (0.015, 0.035), (3, 6), (0.6, 0.9), (0.5, 1), (0, 0.5),
-                           (0.015, 0.035), (3, 6), (0.6, 0.9), (0.5, 1), (0, 0.5),
-                           (0.015, 0.035), (3, 6), (0.6, 0.9), (0.5, 1), (0, 0.5),
-                           (0.015, 0.035), (3, 6), (0.6, 0.9), (0.5, 1), (0, 0.5)],
+        res = forest_minimize(self.cv_test_comb_xgb_params,
+                          [(0.015, 0.035), (3, 8), (0.6, 0.9), (0.5, 1), (0, 0.5),
+                           (0.015, 0.035), (3, 8), (0.6, 0.9), (0.5, 1), (0, 0.5),
+                           (0.015, 0.035), (3, 8), (0.6, 0.9), (0.5, 1), (0, 0.5),
+                           #(0.015, 0.035), (3, 8), (0.6, 0.9), (0.5, 1), (0, 0.5),
+                           #(0.015, 0.035), (3, 8), (0.6, 0.9), (0.5, 1), (0, 0.5)
+                           ],
                           x0=[0.0245, 5, 0.8, 1, 0,
                               0.03, 5, 0.8, 0.8, 0.4,
                               0.03, 5, 0.8, 1, 0,
@@ -236,7 +275,7 @@ class ZillowHomePrediction():
         print("")
 
     def optimize_xgb_comb_params(self):
-        res = gp_minimize(self.cv_test_combined_models_with_xgb_comb_params,
+        res = forest_minimize(self.cv_test_combined_models_with_xgb_comb_params,
                           [(0.015, 0.035), (3,6), (0.6, 0.9), (0.5, 1), (0, 0.5)],
                           x0=[0.03, 5, 0.8, 0.8, 0.4], y0=0.053262479044449806,
                           n_calls=10)
@@ -264,8 +303,10 @@ home_pred = ZillowHomePrediction()
 #home_pred.test_with_xgboost(xgb_params2, 150)
 #home_pred.generate_combined_model_with_decomp_submission()
 #home_pred.optimize_xgb_comb_params()
-#home_pred.generate_combined_model_submission()
-home_pred.optimize_all_xgb_params()
+#home_pred.optimize_all_xgb_params()
+#home_pred.optimize_with_swarm()
+#home_pred.optimize_xgb_with_swarm()
+home_pred.generate_combined_model_submission()
 end = time.time()
 print("Spent time")
 print(end - start)

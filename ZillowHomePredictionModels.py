@@ -4,6 +4,7 @@ import gc
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
+from cryptography.hazmat.primitives.serialization import load_ssh_public_key
 from sklearn.model_selection import KFold
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import GradientBoostingRegressor
@@ -27,7 +28,7 @@ import xgboost as xgb
 
 # Global Parameters
 XGB_WEIGHT = 0.64155
-BASELINE_WEIGHT = 0.0050#0.0056
+BASELINE_WEIGHT = 0#0.0056#0.0056
 OLS_WEIGHT = 0.0828
 
 XGB1_WEIGHT = 0.9013#0.8#0.80#0.8083#0.9013 XGB Correlation#  # Weight of first in combination of two XGB models
@@ -37,37 +38,37 @@ BASELINE_PRED = 0.0115 # Baseline based on mean of training data, per https://ww
 
 xgb_ols_params = {
             'booster': 'dart',
-            'eta': 0.0245,
-            'max_depth': 5,
-            'subsample': 0.8,
+            'eta': 0.02044365,
+            'max_depth': 3,
+            'subsample': 0.85623748,
             'objective': 'reg:linear',
             'eval_metric': 'mae',
-            'lambda': 1,
-            'alpha': 0.1,
+            'lambda': 0.63761733,
+            'alpha': 0.26980652,
             'silent': 1,
             'seed': random_state
         }
 
 xgb_lgb_params = {
-            'eta': 0.03,
-            'max_depth': 5,
-            'subsample': 0.80,
+            'eta': 0.02531735,
+            'max_depth': 3,
+            'subsample': 0.73690883,
             'objective': 'reg:linear',
             'eval_metric': 'mae',
-            'lambda': 1,
-            'alpha': 0,
+            'lambda': 0.64511885,
+            'alpha': 0.36120982,
             'silent': 1,
             'seed': random_state
         }
 
 xgb_comb_params = {
-            'eta': 0.03,
-            'max_depth': 5,
-            'subsample': 0.80,
+            'eta': 0.03240067,
+            'max_depth': 3,
+            'subsample': 0.62399971,
             'objective': 'reg:linear',
             'eval_metric': 'mae',
-            'lambda': 0.7,
-            'alpha': 0.4,
+            'lambda': 0.83544795,
+            'alpha': 0.04455517,
             'silent': 1,
             'seed': random_state
         }
@@ -75,23 +76,25 @@ xgb_comb_params = {
 
 
 xgb_params1 = {
-            'eta': 0.037,
-            'max_depth': 5,
-            'subsample': 0.80,
+            'eta': 0.015,
+            'max_depth': 8,
+            'subsample': 0.9,
             'objective': 'reg:linear',
             'eval_metric': 'mae',
-            'lambda': 0.8,
-            'alpha': 0.4,
+            'lambda': 0.96104357,
+            'alpha': 0.31159466,
             'silent': 1,
             'seed': random_state
         }
 
 xgb_params2 = {
-            'eta': 0.033,
-            'max_depth': 6,
-            'subsample': 0.8,
+            'eta': 0.015,
+            'max_depth': 3,
+            'subsample': 0.81699297,
             'objective': 'reg:linear',
             'eval_metric': 'mae',
+            'lambda': 0.98900364,
+            'alpha': 0,
             'silent': 1,
             'seed': random_state
         }
@@ -178,7 +181,7 @@ class ZillowHomePredictionModels:
         np.random.seed(17)
         random.seed(17)
         #reg = LinearRegression(n_jobs=-1)
-        reg = LinearSVR()
+        reg = LinearSVR(C=0.9)
         return reg
 
     def get_ols_train(self, x_train, transaction_date):
@@ -407,15 +410,15 @@ class ZillowHomePredictionModels:
         output = pd.DataFrame({'ParcelId': x_test_index})
         train_xgb_lgb, pred_xgb_lgb = self.generate_xgb_lgb_combined_predictions(x_train, y_train, x_test)
         print("Train OLS Model:")
-        # ols_model = self.generate_ols_model(x_train, merged_df["transactiondate"].values, y_train)
+        ols_model = self.generate_ols_model(x_train, merged_df["transactiondate"].values, y_train)
         ols_x_train = self.get_ols_train(x_train, merged_df["transactiondate"].values)
-        # ols_train = self.__get_model_prediction__(ols_model, ols_x_train)
-        ols_clf = self.create_ols_model()
+        ols_train = self.__get_model_prediction__(ols_model, ols_x_train)
+        #ols_clf = self.create_ols_model()
         for i in range(len(dates)):
             transaction_date = dates[i]
             ols_x_test = self.get_ols_test(x_test, transaction_date)
-            ols_train, ols_pred = self.get_oof(ols_clf, ols_x_train, y_train, ols_x_test)
-            # ols_pred = self.__get_model_prediction__(ols_model, ols_x_test)
+            #ols_train, ols_pred = self.get_oof(ols_clf, ols_x_train, y_train, ols_x_test)
+            ols_pred = self.__get_model_prediction__(ols_model, ols_x_test)
             # pred = OLS_WEIGHT * ols_pred + (1 - OLS_WEIGHT) * pred0
             new_x_train = pd.DataFrame({"model1": train_xgb_lgb.flatten(),
                                         "model2": ols_train.flatten()})
@@ -424,7 +427,7 @@ class ZillowHomePredictionModels:
 
             print("Train Combined Models For {}:".format(transaction_date))
             xgb_ols_train_pred, xgb_ols_test_pred = self.get_oof_for_xgboost(new_x_train, y_train,
-                                                                             new_x_test, self.xgb_ols_params, 70)
+                                                                             new_x_test, self.xgb_ols_params, 65)
 
             # xgb_ols_model = self.generate_xgb_model(new_x_train, y_train, xgb_lgb_params, 150)
             # xgb_ols_train_pred = self.__get_model_prediction__(xgb_ols_model, xgb.DMatrix(new_x_train))
