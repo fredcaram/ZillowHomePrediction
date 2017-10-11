@@ -12,7 +12,7 @@ import ZillowHighCardinalityDataHandler
 class ZillowDataRepository:
     def __init__(self, prop_scaler=None, train_scaler=None):
         self.dir = "Data\\"
-        self.train_data_file = "train_2016_v2.csv"
+        self.train_data_files = ["train_2016_v2.csv", "train_2017.csv"]
         self.properties_file = "properties_2016.csv"
         self.__train_data__ = None
         self.__properties_data__ = None
@@ -22,7 +22,12 @@ class ZillowDataRepository:
 
     def get_train_data(self):
         if self.__train_data__ is None:
-            self.__train_data__ = self.__read_train_data__()
+            train_data = pd.DataFrame()
+            for train_data_file in self.train_data_files:
+                train_df = self.__read_train_data__(train_data_file)
+                train_data = pd.concat([train_data, train_df])
+
+            self.__train_data__ = train_data
         return self.__train_data__
 
     def get_properties_data(self):
@@ -38,8 +43,8 @@ class ZillowDataRepository:
     def y_and_n_to_bool_converter(self, value: str) -> bool:
         return value == "Y"
 
-    def __read_train_data__(self) -> pd.DataFrame:
-        train_data = pd.read_csv(self.dir + self.train_data_file, index_col=0)
+    def __read_train_data__(self, train_data_file) -> pd.DataFrame:
+        train_data = pd.read_csv(self.dir + train_data_file, index_col=0)
 
         if not self.train_data_scaler is None:
             self.train_data_scaler.fit(train_data['logerror'])
