@@ -49,6 +49,19 @@ xgb_ols_params = {
             'seed': random_state
         }
 
+xgb_cities_models_comb = {
+            'booster': 'dart',
+            'eta': 0.02044365,
+            'max_depth': 3,
+            'subsample': 0.85623748,
+            'objective': 'reg:linear',
+            'eval_metric': 'mae',
+            'lambda': 0.63761733,
+            'alpha': 0.26980652,
+            'silent': 1,
+            'seed': random_state
+        }
+
 xgb_lgb_params = {
             'eta': 0.02531735,
             'max_depth': 3,
@@ -404,29 +417,76 @@ class ZillowHomePredictionModels:
 
         return output
 
+    def get_top_npercent(self, df, feature, percent=0.8) -> np.array:
+        groupedFeatures = df.groupby(feature)[feature].count()
+        quantile = groupedFeatures.quantile(percent)
+        filteredValues = groupedFeatures[groupedFeatures >= quantile].index
+        return filteredValues
+
+    def get_above_n(self, df, feature, n=5000) -> np.array:
+        groupedFeatures = df.groupby(feature)[feature].count()
+        filteredValues = groupedFeatures[groupedFeatures >= n].index
+        return filteredValues
+
     def generate_all_combined_predictions(self, merged_df, x_test, x_test_index, x_train, y_train, scaler=None):
         dates = ['2016-10-01', '2016-11-01', '2016-12-01', '2017-10-01', '2017-11-01', '2017-12-01']
         columns = ['201610', '201611', '201612', '201710', '201711', '201712']
         output = pd.DataFrame({'ParcelId': x_test_index})
-        train_xgb_lgb, pred_xgb_lgb = self.generate_xgb_lgb_combined_predictions(x_train, y_train, x_test)
+
+        topcities = self.get_above_n(x_train, 'regionidcity', 2000)
+        train_by_city = []
+        test_by_city = []
+        y_train_by_city = []
+        train_indexes = []
+        test_indexes = []
+        excludedCities = np.unique(x_train[~x_train["regionidcity"].isin(topcities)]["regionidcity"].values)
+
+        for city in topcities:
+            city_x_train = x_train[x_train["regionidcity"] == city]
+            city_x_test = x_test[x_test["regionidcity"] == city]
+
+            if city_x_train.shape[0] == 0 or city_x_test.shape[0] == 0:
+                np.append(excludedCities, city)
+                continue
+
+            city_y_train = np.array(y_train[x_train["regionidcity"] == city])
+            new_train, new_test = self.generate_xgb_lgb_combined_predictions(city_x_train,
+                                                       city_y_train, city_x_test)
+            train_by_city.extend(new_train)
+            test_by_city.extend(new_test)
+            y_train_by_city.extend(city_y_train)
+            train_indexes.extend(city_x_train.index.values)
+            test_indexes.extend(city_x_test.index.values)
+
+        city_x_train = x_train[x_train["regionidcity"].isin(excludedCities)]
+        city_x_test = x_test[x_test["regionidcity"].isin(excludedCities)]
+        city_y_train = y_train[x_train["regionidcity"].isin(excludedCities)]
+        new_train, new_test = self.generate_xgb_lgb_combined_predictions(city_x_train,city_y_train, city_x_test)
+
+        train_by_city.extend(new_train)
+        test_by_city.extend(new_test)
+        y_train_by_city.extend(city_y_train)
+        train_indexes.extend(city_x_train.index.values)
+        test_indexes.extend(city_x_test.index.values)
+
         print("Train OLS Model:")
-        ols_model = self.generate_ols_model(x_train, merged_df["transactiondate"].values, y_train)
-        ols_x_train = self.get_ols_train(x_train, merged_df["transactiondate"].values)
+        ols_model = self.generate_ols_model(x_train.loc[train_indexes,:], merged_df.loc[train_indexes,:]["transactiondate"].values, y_train_by_city)
+        ols_x_train = self.get_ols_train(x_train.loc[train_indexes, :], merged_df.loc[train_indexes, :]["transactiondate"].values)
         ols_train = self.__get_model_prediction__(ols_model, ols_x_train)
         #ols_clf = self.create_ols_model()
         for i in range(len(dates)):
             transaction_date = dates[i]
-            ols_x_test = self.get_ols_test(x_test, transaction_date)
+            ols_x_test = self.get_ols_test(x_test.loc[test_indexes,:], transaction_date)
             #ols_train, ols_pred = self.get_oof(ols_clf, ols_x_train, y_train, ols_x_test)
             ols_pred = self.__get_model_prediction__(ols_model, ols_x_test)
             # pred = OLS_WEIGHT * ols_pred + (1 - OLS_WEIGHT) * pred0
-            new_x_train = pd.DataFrame({"model1": train_xgb_lgb.flatten(),
+            new_x_train = pd.DataFrame({"model1": train_by_city,
                                         "model2": ols_train.flatten()})
-            new_x_test = pd.DataFrame({"model1": pred_xgb_lgb.flatten(),
+            new_x_test = pd.DataFrame({"model1": test_by_city,
                                        "model2": ols_pred.flatten()})
 
             print("Train Combined Models For {}:".format(transaction_date))
-            xgb_ols_train_pred, xgb_ols_test_pred = self.get_oof_for_xgboost(new_x_train, y_train,
+            xgb_ols_train_pred, xgb_ols_test_pred = self.get_oof_for_xgboost(new_x_train, np.array(y_train_by_city),
                                                                              new_x_test, self.xgb_ols_params, 65)
 
             # xgb_ols_model = self.generate_xgb_model(new_x_train, y_train, xgb_lgb_params, 150)
